@@ -93,6 +93,7 @@
 "En ligne · appairé" = "Online · paired";
 "En ligne · non appairé" = "Online · not paired";
 "En plein écran" = "In full screen";
+"En savoir plus" = "Learn More";
 "Enregistrer" = "Save";
 "Envoie au PC les raccourcis comme ⌘⇥ ou ⌘Espace au lieu de les laisser à macOS." = "Sends shortcuts like ⌘⇥ or ⌘Space to the PC instead of leaving them to macOS.";
 "Excellente pour streamer" = "Excellent for streaming";
@@ -113,6 +114,8 @@
 "hier" = "yesterday";
 "Hors de chez toi" = "Away from home";
 "Hors ligne" = "Offline";
+"Il aide les manettes et AirPods Bluetooth, mais laisse moins de ressources aux apps en arrière-plan, comme VirtualHere. Si la souris ou le son accrochent, coupe-le pendant un stream : ⌃⌥⇧Z, l'icône manette de la barre des menus, Réglages, Mode Jeu. macOS s'en souvient." = "It helps Bluetooth controllers and AirPods, but leaves fewer resources to background apps such as VirtualHere. If the mouse or sound stutters, turn it off during a stream: ⌃⌥⇧Z, the controller icon in the menu bar, Settings, Game Mode. macOS remembers it.";
+"Il aide les manettes et AirPods Bluetooth, mais laisse moins de ressources aux apps en arrière-plan, comme VirtualHere. Si la souris ou le son accrochent, coupe-le pendant un stream : ⌃⌥⇧Z, puis le menu Mode Jeu de la barre des menus, Désactiver le mode Jeu. macOS s'en souvient." = "It helps Bluetooth controllers and AirPods, but leaves fewer resources to background apps such as VirtualHere. If the mouse or sound stutters, turn it off during a stream: ⌃⌥⇧Z, then the Game Mode menu in the menu bar, Turn Off Game Mode. macOS remembers it.";
 "Il faudra l'appairer à nouveau pour streamer." = "You'll need to pair it again to stream.";
 "Image" = "Picture";
 "Images par seconde" = "Frame rate";
@@ -163,6 +166,7 @@
 "Metal" = "Metal";
 "Mode" = "Mode";
 "Mode d'affichage" = "Display mode";
+"Mode Jeu de macOS" = "macOS Game Mode";
 "Monte le débit jusqu'à 500 Mb/s au lieu de 150." = "Raises the bitrate limit to 500 Mb/s instead of 150.";
 "Moonvibe" = "Moonvibe";
 "Moonvibe %@" = "Moonvibe %@";

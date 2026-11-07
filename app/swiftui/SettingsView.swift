@@ -557,6 +557,13 @@ struct MVAdvancedSettings: View {
                 MVSettingToggle(title: "Statut Discord",
                                 help: "Affiche le jeu en cours sur ton profil Discord.",
                                 isOn: model.binding(\.richPresence))
+                // macOS turns Game Mode on by itself, and only its own switch turns it off
+                LabeledContent {
+                    Link("En savoir plus", destination: URL(string: "https://support.apple.com/105118")!)
+                } label: {
+                    Text("Mode Jeu de macOS")
+                    Text(gameModeTip)
+                }
             }
             Section("Moonvibe") {
                 MVSettingToggle(title: "Rechercher les mises à jour",
@@ -571,5 +578,13 @@ struct MVAdvancedSettings: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    /// Where macOS keeps its Game Mode switch, which remembers the choice for Moonvibe.
+    private var gameModeTip: LocalizedStringKey {
+        if #available(macOS 26.0, *) {
+            return "Il aide les manettes et AirPods Bluetooth, mais laisse moins de ressources aux apps en arrière-plan, comme VirtualHere. Si la souris ou le son accrochent, coupe-le pendant un stream : ⌃⌥⇧Z, l'icône manette de la barre des menus, Réglages, Mode Jeu. macOS s'en souvient."
+        }
+        return "Il aide les manettes et AirPods Bluetooth, mais laisse moins de ressources aux apps en arrière-plan, comme VirtualHere. Si la souris ou le son accrochent, coupe-le pendant un stream : ⌃⌥⇧Z, puis le menu Mode Jeu de la barre des menus, Désactiver le mode Jeu. macOS s'en souvient."
     }
 }
