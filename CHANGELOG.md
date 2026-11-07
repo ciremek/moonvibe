@@ -2,6 +2,11 @@
 
 Moonvibe versions, newest first. Each one builds on [Moonlight PC](https://github.com/moonlight-stream/moonlight-qt) 6.2.
 
+## 0.5.3 · Your call · November 7, 2026
+
+### Improved
+- **macOS Game Mode tip** in Settings, Advanced: what Game Mode changes while you stream, and where to turn it off for Moonvibe if the mouse or sound stutters. macOS remembers your choice.
+
 ## 0.5.2 · Every detail · October 21, 2026
 
 ### New
