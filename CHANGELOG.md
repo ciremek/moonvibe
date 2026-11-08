@@ -2,6 +2,11 @@
 
 Moonvibe versions, newest first. Each one builds on [Moonlight PC](https://github.com/moonlight-stream/moonlight-qt) 6.2.
 
+## 0.5.4 · Steady · November 8, 2026
+
+### Fixed
+- Moonvibe no longer crashes when a stream starts while a display is going to sleep, waking up or changing setup: the stream keeps the saved resolution instead.
+
 ## 0.5.3 · Your call · November 7, 2026
 
 ### Improved
