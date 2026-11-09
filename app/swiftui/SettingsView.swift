@@ -503,6 +503,8 @@ struct MVAdvancedSettings: View {
     @ObservedObject var model: MVModel
     /// Sparkle's own key, so the switch follows it
     @AppStorage("SUEnableAutomaticChecks") private var checkForUpdates = true
+    @AppStorage(MVQuickLaunch.menuBarIconKey) private var menuBarIcon = false
+    @AppStorage(MVQuickLaunch.hideDockIconKey) private var hideDockIcon = false
     private let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
 
     var body: some View {
@@ -566,6 +568,15 @@ struct MVAdvancedSettings: View {
                 }
             }
             Section("Moonvibe") {
+                MVSettingToggle(title: "Icône dans la barre des menus",
+                                help: "Tes jeux récents en un clic, comme dans le menu de l'icône du Dock.",
+                                isOn: $menuBarIcon)
+                    .onChange(of: menuBarIcon) { model.quickLaunch?.updateMenuBarIcon() }
+                MVSettingToggle(title: "Masquer l'icône du Dock",
+                                help: "Moonvibe vit dans la barre des menus. L'icône revient le temps d'un stream, pour ⌘⇥.",
+                                isOn: $hideDockIcon)
+                    .onChange(of: hideDockIcon) { model.quickLaunch?.updateDockIcon() }
+                    .disabled(!menuBarIcon)
                 MVSettingToggle(title: "Rechercher les mises à jour",
                                 help: "Vérifie deux fois par jour si une nouvelle version est sortie.",
                                 isOn: $checkForUpdates)

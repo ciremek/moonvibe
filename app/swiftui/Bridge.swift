@@ -37,9 +37,17 @@ final class MVWindowController: NSObject, NSWindowDelegate {
         model.window = window
         model.refreshDisplay()
         model.updater = MVUpdater(model: model)
+        model.quickLaunch = MVQuickLaunch(model: model)
         model.openSettings = { [unowned model] section in
             MVSettingsWindowController.show(model: model, section: section)
         }
+    }
+
+    /// A menu bar app keeps running: closing Home only hides it.
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard model.quickLaunch?.livesInMenuBar == true else { return true }
+        window.orderOut(nil)
+        return false
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -169,9 +177,12 @@ public func mvUiSetVisible(_ visible: Bool) {
         if visible {
             // Home comes back when the stream window goes away
             controller.model.streamWindowClosed()
+            controller.model.quickLaunch?.setStreaming(false)
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
         } else {
+            // Before the stream window opens: it needs the Dock icon, for ⌘⇥ and Game Mode
+            controller.model.quickLaunch?.setStreaming(true)
             window.orderOut(nil)
         }
     }

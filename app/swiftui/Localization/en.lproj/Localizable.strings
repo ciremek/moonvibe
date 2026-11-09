@@ -10,6 +10,8 @@
 "%@ se ferme, puis %@ se lance…" = "%@ is closing, then %@ will start…";
 "%@ se lance dès qu'il répond." = "%@ starts as soon as it answers.";
 "%@ · %@" = "%@ · %@";
+"%@ · hors ligne" = "%@ · offline";
+"%@ · réveil puis lancement" = "%@ · wakes up, then launches";
 "%lld" = "%lld";
 "%lld images par seconde" = "%lld frames per second";
 "%lld Mb/s" = "%lld Mb/s";
@@ -44,6 +46,7 @@
 "Apps à ouvrir sur ce Mac" = "Apps to open on this Mac";
 "Arrêter" = "Stop";
 "Attends-toi à des saccades : rapproche-toi de la box, ou branche un câble." = "Expect some stutter: move closer to the router, or plug in a cable.";
+"Aucun jeu récent" = "No recent games";
 "Aucun ordinateur" = "No Computers";
 "Aucune pour l'instant" = "None yet";
 "Audio" = "Audio";
@@ -119,6 +122,7 @@
 "hier" = "yesterday";
 "Hors de chez toi" = "Away from home";
 "Hors ligne" = "Offline";
+"Icône dans la barre des menus" = "Menu bar icon";
 "Il aide les manettes et AirPods Bluetooth, mais laisse moins de ressources aux apps en arrière-plan, comme VirtualHere. Si la souris ou le son accrochent, coupe-le pendant un stream : ⌃⌥⇧Z, l'icône manette de la barre des menus, Réglages, Mode Jeu. macOS s'en souvient." = "It helps Bluetooth controllers and AirPods, but leaves fewer resources to background apps such as VirtualHere. If the mouse or sound stutters, turn it off during a stream: ⌃⌥⇧Z, the controller icon in the menu bar, Settings, Game Mode. macOS remembers it.";
 "Il aide les manettes et AirPods Bluetooth, mais laisse moins de ressources aux apps en arrière-plan, comme VirtualHere. Si la souris ou le son accrochent, coupe-le pendant un stream : ⌃⌥⇧Z, puis le menu Mode Jeu de la barre des menus, Désactiver le mode Jeu. macOS s'en souvient." = "It helps Bluetooth controllers and AirPods, but leaves fewer resources to background apps such as VirtualHere. If the mouse or sound stutters, turn it off during a stream: ⌃⌥⇧Z, then the Game Mode menu in the menu bar, Turn Off Game Mode. macOS remembers it.";
 "Il faudra l'appairer à nouveau pour streamer." = "You'll need to pair it again to stream.";
@@ -170,6 +174,7 @@
 "Manette" = "Gamepad";
 "Manettes" = "Gamepads";
 "Manettes en arrière-plan" = "Gamepads in the background";
+"Masquer l'icône du Dock" = "Hide the Dock icon";
 "Matériel" = "Hardware";
 "Max" = "Max";
 "Mesure en cours…" = "Measuring…";
@@ -183,6 +188,7 @@
 "Moonvibe %@" = "Moonvibe %@";
 "Moonvibe %@ est disponible" = "Moonvibe %@ is available";
 "Moonvibe essaie le réseau local en premier quand ce Mac y est, puis les autres adresses." = "Moonvibe tries the local network first when this Mac is on it, then the other addresses.";
+"Moonvibe vit dans la barre des menus. L'icône revient le temps d'un stream, pour ⌘⇥." = "Moonvibe lives in the menu bar. The icon comes back during a stream, for ⌘⇥.";
 "Moteur de rendu" = "Renderer";
 "Natif sans encoche · %@" = "Native without notch · %@";
 "Natif · %@" = "Native · %@";
@@ -198,6 +204,7 @@
 "Ordinateurs et réseau" = "Computers & Network";
 "Ou ajoute-le à la main" = "Or add it by hand";
 "Ouvre des apps sur ce Mac" = "Opens apps on this Mac";
+"Ouvrir Moonvibe" = "Open Moonvibe";
 "Pas encore enregistré" = "Not saved yet";
 "PC injoignable : ton réseau semble bloquer la connexion." = "PC unreachable: your network seems to block the connection.";
 "PC introuvable à cette adresse. Vérifie qu'il est allumé et que Sunshine tourne." = "No PC found at this address. Check that it's on and that Sunshine is running.";
@@ -231,6 +238,7 @@
 "Quitter l'app" = "Quit App";
 "Quitter l'app à la fin du stream" = "Quit the app when the stream ends";
 "Quitter le stream (⌃⌥⇧Q)" = "Quit the stream (⌃⌥⇧Q)";
+"Quitter Moonvibe" = "Quit Moonvibe";
 "Recherche" = "Search";
 "Recherche en cours…" = "Searching…";
 "Rechercher" = "Search";
@@ -288,6 +296,7 @@
 "Surround 5.1" = "Surround 5.1";
 "Surround 7.1" = "Surround 7.1";
 "Synchronisation verticale (V-Sync)" = "Vertical sync (V-Sync)";
+"Tes jeux récents en un clic, comme dans le menu de l'icône du Dock." = "Your recent games in one click, like in the Dock icon's menu.";
 "Tes réglages, enregistrés dès que tu les modifies." = "Your own settings, saved as soon as you change them.";
 "Test en cours" = "Testing";
 "Tester" = "Test";

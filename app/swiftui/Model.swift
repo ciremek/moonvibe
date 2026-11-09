@@ -420,6 +420,7 @@ final class MVModel: ObservableObject {
     @Published var cancellable = true
     @Published var errorMessage: String?
     var updater: MVUpdater?
+    var quickLaunch: MVQuickLaunch?
     /// Version of the update the sidebar badge shows, found by a scheduled check.
     @Published var availableUpdate: String?
     @Published var showPairing = false
