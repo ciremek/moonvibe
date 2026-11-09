@@ -29,6 +29,7 @@ Everything Moonlight does is still there (HEVC and AV1, HDR, 7.1 audio, gamepads
 - **In-stream panels**: a bar with the PC and the app, a live stats card, and a shortcut reminder while the mouse is captured.
 - **Quality presets** Fluide (smooth), Équilibré (balanced), Max and Perso (custom), matched to your display's resolution and refresh rate.
 - **Keyboard shortcuts**: <kbd>⌘K</kbd> to search, <kbd>⌘1</kbd> to <kbd>⌘3</kbd> to launch the first apps, <kbd>⌘,</kbd> for settings.
+- **Launch from the Dock or the menu bar**: your recent games in the Dock icon's menu, and in an optional menu bar icon. Moonvibe can even leave the Dock and live in the menu bar.
 - **Motion that tells you what's happening**: waking a PC shows each magic packet going out and lights the tiles back up when it answers, and a launch bursts into stars. Reduce Motion is honored.
 - **In English and French**, following your Mac's language. Light and dark appearances, VoiceOver labels.
 - **Runs alongside the official Moonlight**: separate settings, paired PCs and icon.
@@ -48,6 +49,7 @@ Everything Moonlight does is still there (HEVC and AV1, HDR, 7.1 audio, gamepads
 - **AWDL off while streaming** (optional): AirDrop, AirPlay and friends stop causing Wi-Fi latency spikes. It asks for admin approval once.
 - **Auto resolution**: the stream uses the native resolution of the display it opens on.
 - **Connection test** in the PC settings: a live latency trace, then latency, variation and loss, and the Wi-Fi band or Ethernet link this Mac uses.
+- **Stream report**: after each stream, Home sums up latency, frame rate, lost frames, sound cuts and the way the stream went, with a tip when something held it back. The launch bar warns beforehand when the Mac is on 2.4 GHz Wi-Fi or a weak signal.
 
 ### 🛟 Reliability
 - If the PC falls asleep during a stream, it shows as **offline** as soon as you quit, and Moonvibe offers to wake it.

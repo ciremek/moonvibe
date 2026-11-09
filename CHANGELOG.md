@@ -2,6 +2,14 @@
 
 Moonvibe versions, newest first. Each one builds on [Moonlight PC](https://github.com/moonlight-stream/moonlight-qt): version 6.2 up to Moonvibe 0.5.4, then Moonlight's code of November 5, 2026.
 
+## 0.6.0 · Check-up · November 9, 2026
+
+### New
+- **Stream report**: when a stream ends, Home sums it up: a verdict, latency, frame rate, lost frames, sound cuts, how the Mac was connected and which way the stream went (local network, Tailscale…), with a tip when something held it back, such as 2.4 GHz Wi-Fi.
+- **Wi-Fi warning**: before you launch, the launch bar warns when the Mac is on 2.4 GHz Wi-Fi or a weak signal.
+- **Launch from the Dock**: right-click Moonvibe's Dock icon for your recent games. One click launches, waking the PC if needed.
+- **Menu bar icon**, in Settings, Advanced: the same recent games from the menu bar. Moonvibe can then leave the Dock: closing Home keeps it in the menu bar, and the Dock icon comes back during a stream so ⌘⇥ still works.
+
 ## 0.5.5 · Fresh engine · November 9, 2026
 
 ### Improved
