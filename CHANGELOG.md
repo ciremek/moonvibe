@@ -1,6 +1,12 @@
 # Changelog
 
-Moonvibe versions, newest first. Each one builds on [Moonlight PC](https://github.com/moonlight-stream/moonlight-qt) 6.2.
+Moonvibe versions, newest first. Each one builds on [Moonlight PC](https://github.com/moonlight-stream/moonlight-qt): version 6.2 up to Moonvibe 0.5.4, then Moonlight's code of November 5, 2026.
+
+## 0.5.5 · Fresh engine · November 9, 2026
+
+### Improved
+- **Moonlight's latest fixes**, up to November 5: a timeout on requests to the PC so a silent PC can't hold Moonvibe up, sturdier video renderers and frame pacing, and safer pairing.
+- **The latest streaming engine** (November 3): mouse movements are no longer held back when a lot of input is sent at once, network messages are checked more strictly, and replayed control messages are rejected.
 
 ## 0.5.4 · Steady · November 8, 2026
 
