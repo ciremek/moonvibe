@@ -447,6 +447,13 @@ final class MVModel: ObservableObject {
     @Published private(set) var launchingApp: MVAppRef?
     /// Launches actually started, by app: each one bursts out of its tile.
     @Published private(set) var launchStarts: [MVAppRef: Int] = [:]
+    /// How this Mac reaches the network right now.
+    @Published private(set) var link = MVLink(wired: false, wifi: nil)
+    /// The report on the last stream, until it's closed or another stream starts.
+    @Published var lastReport: MVStreamSummary?
+    private var linkMonitor: MVLinkMonitor?
+    /// The link when the current stream started, which its report shows.
+    private var linkAtLaunch: MVLink?
     /// Computer whose settings sheet is open.
     @Published var computerSettingsId: String?
     /// App whose settings sheet is open.
@@ -493,6 +500,11 @@ final class MVModel: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: Self.appSettingsKey),
            let decoded = try? JSONDecoder().decode([String: MVAppSettings].self, from: data) {
             appSettings = decoded
+        }
+        linkMonitor = MVLinkMonitor { [weak self] link in
+            if self?.link != link {
+                self?.link = link
+            }
         }
     }
 
@@ -708,6 +720,8 @@ final class MVModel: ObservableObject {
         let ref = MVAppRef(computerId: computer.id, appId: app.id)
         launchingApp = ref
         launchStarts[ref, default: 0] += 1
+        lastReport = nil
+        linkAtLaunch = linkMonitor?.current ?? link
         status = String(localized: "Connexion à \(computer.name)…")
         rememberRecent(app, on: computer)
 
@@ -884,6 +898,20 @@ final class MVModel: ObservableObject {
         let bundleIds = appsToQuitAfterStream ?? []
         appsToQuitAfterStream = nil
         bundleIds.forEach(Self.quitApp(bundleIdentifier:))
+        linkMonitor?.refresh()
+    }
+
+    /// The host's report on the stream that just ended, shown on Home.
+    func show(report: MVStreamReport) {
+        guard report.durationSecs >= MVStreamSummary.minimumDuration else { return }
+        let computer = computers.first { $0.id == report.computerId }
+        let address = computer?.addresses.first { $0.address == report.address }
+        // The user's label for an added address, else what kind of address it is
+        let route = address.map { address in
+            computer.flatMap { addressLabel(address.text, of: $0) } ?? address.kindLabel
+        }
+        lastReport = MVStreamSummary(report: report, link: linkAtLaunch ?? link,
+                                     route: route, localRoute: address?.kind == "local")
     }
 
     /// Asks every instance of an app to quit. A standard quit event also reaches an

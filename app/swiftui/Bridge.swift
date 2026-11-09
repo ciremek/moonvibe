@@ -153,6 +153,14 @@ public func mvUiAddressTestResult(_ json: UnsafePointer<CChar>) {
     }
 }
 
+@_cdecl("mv_ui_stream_report")
+public func mvUiStreamReport(_ json: UnsafePointer<CChar>) {
+    guard let report = decode(MVStreamReport.self, from: json) else { return }
+    MainActor.assumeIsolated {
+        MVWindowController.shared?.model.show(report: report)
+    }
+}
+
 @_cdecl("mv_ui_set_visible")
 public func mvUiSetVisible(_ visible: Bool) {
     MainActor.assumeIsolated {

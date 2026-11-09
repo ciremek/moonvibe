@@ -46,6 +46,8 @@ void mv_ui_update_pairing(const char* json);
 void mv_ui_add_host_result(const char* json);
 void mv_ui_wake_result(const char* json);
 void mv_ui_address_test_result(const char* json);
+// How the stream that just ended went (Session::StreamReport)
+void mv_ui_stream_report(const char* json);
 
 // Stream overlays, shown above the SDL stream window (an NSWindow*). Unlike the rest
 // of the API, they run while Qt's event loop is suspended, and mv_overlay_stats() is

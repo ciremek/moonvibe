@@ -3,7 +3,6 @@
 // the time to open a TCP connection to Sunshine's HTTP port, which streaming needs open:
 // the SYN/SYN-ACK round trip, without any app processing in between.
 
-import CoreWLAN
 import Foundation
 import Network
 
@@ -87,7 +86,7 @@ final class MVConnectionTester: ObservableObject {
             let once = MVOnce()
             let start = DispatchTime.now().uptimeNanoseconds
 
-            func finish(_ result: (Double, Bool)?) {
+            @Sendable func finish(_ result: (Double, Bool)?) {
                 guard once.claim() else { return }
                 connection.cancel()
                 continuation.resume(returning: result)
@@ -112,26 +111,7 @@ final class MVConnectionTester: ObservableObject {
     private static func linkDescription(wired: Bool?) -> String? {
         guard let wired else { return nil }
         if wired { return "Ethernet" }
-
-        guard let channel = CWWiFiClient.shared().interface()?.wlanChannel() else { return "Wi-Fi" }
-        let band: String
-        switch channel.channelBand {
-        case .band2GHz: band = String(localized: "2,4 GHz")
-        case .band5GHz: band = "5 GHz"
-        case .band6GHz: band = "6 GHz"
-        default: return "Wi-Fi"
-        }
-        let width: String
-        switch channel.channelWidth {
-        case .width20MHz: width = "20 MHz"
-        case .width40MHz: width = "40 MHz"
-        case .width80MHz: width = "80 MHz"
-        case .width160MHz: width = "160 MHz"
-        default: width = ""
-        }
-        return width.isEmpty
-            ? String(localized: "Wi-Fi \(band) · canal \(channel.channelNumber)")
-            : String(localized: "Wi-Fi \(band) · canal \(channel.channelNumber) · \(width)")
+        return MVWiFi.current()?.description ?? "Wi-Fi"
     }
 }
 

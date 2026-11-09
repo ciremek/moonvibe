@@ -43,6 +43,7 @@
 "Apparence" = "Appearance";
 "Apps à ouvrir sur ce Mac" = "Apps to open on this Mac";
 "Arrêter" = "Stop";
+"Attends-toi à des saccades : rapproche-toi de la box, ou branche un câble." = "Expect some stutter: move closer to the router, or plug in a cable.";
 "Aucun ordinateur" = "No Computers";
 "Aucune pour l'instant" = "None yet";
 "Audio" = "Audio";
@@ -62,6 +63,7 @@
 "Ce n'est pas une adresse valide" = "This isn't a valid address";
 "Cette app n'est plus disponible." = "This app isn't available anymore.";
 "Chaque manette est un joueur. Coupé, elles pilotent toutes le joueur 1." = "Each gamepad is a player. When off, they all control player 1.";
+"Chemin" = "Route";
 "Clavier" = "Keyboard";
 "Clavier et souris" = "Keyboard & Mouse";
 "Code %@" = "Code %@";
@@ -77,6 +79,8 @@
 "Couper l'AWDL" = "Turn off AWDL";
 "Couper le son du PC" = "Mute the PC";
 "Couper le son en arrière-plan" = "Mute in the background";
+"Coupures du son" = "Sound cuts";
+"Des images se sont perdues en route : baisse le débit, ou passe au câble." = "Some frames got lost on the way: lower the bitrate, or switch to a cable.";
 "Débit" = "Bitrate";
 "Débit vidéo" = "Video bitrate";
 "Débloquer le débit" = "Unlock bitrate";
@@ -101,6 +105,7 @@
 "Fenêtre" = "Window";
 "Fenêtre sans bordure" = "Borderless window";
 "Fermer" = "Close";
+"Fermer le bilan" = "Close the report";
 "Fermeture de l'app en cours sur %@…" = "Quitting the running app on %@…";
 "Fixe" = "Fixed";
 "Fluide" = "Smooth";
@@ -136,22 +141,28 @@
 "L'app en cours" = "The running app";
 "L'appairage a échoué." = "Pairing failed.";
 "L'appairage n'a pas abouti" = "Pairing Didn't Work";
+"La latence était élevée : c'est normal à distance, sinon vérifie ton réseau." = "Latency was high: expected away from home, otherwise check your network.";
 "Lance l'app" = "Launches the app";
 "Lancement impossible" = "Can't Launch";
 "Lancer %@" = "Launch %@";
 "Latence" = "Latency";
 "Latence minimale, idéal en Wi-Fi." = "Lowest latency, ideal over Wi-Fi.";
 "Latence réseau" = "Network latency";
+"Le 2,4 GHz est plus lent et plus encombré : attends-toi à de la latence. Reconnecte-toi en 5 ou 6 GHz, ou branche un câble." = "2.4 GHz is slower and more crowded: expect some latency. Reconnect on 5 or 6 GHz, or plug in a cable.";
 "Le compromis entre netteté et fluidité." = "The balance between sharpness and smoothness.";
 "Le curseur suit exactement ta souris. À éviter dans les jeux de tir." = "The cursor follows your mouse exactly. Avoid it in shooters.";
 "Le PC doit être en ligne pour tester la connexion." = "The PC must be online to test the connection.";
 "Le PC ne répond pas" = "The PC isn't answering";
 "Le PC répond sur cette adresse en ce moment" = "The PC answers on this address right now";
 "Le port va de 1 à 65535." = "The port goes from 1 to 65535.";
+"Le signal Wi-Fi était faible : rapproche-toi de la box, ou branche un câble." = "The Wi-Fi signal was weak: move closer to the router, or plug in a cable.";
+"Le son a coupé : le Wi-Fi a perdu des paquets en rafale. Le câble ou le Wi-Fi 6 GHz règlent ça le plus souvent." = "The sound cut out: Wi-Fi lost packets in bursts. A cable or 6 GHz Wi-Fi usually fixes that.";
+"Le stream est passé par %@, pas par le réseau local : un peu plus de latence est normal." = "The stream went through %@, not the local network: some extra latency is normal.";
 "Le stream précédent se termine, réessaie dans un instant." = "The previous stream is still closing, try again in a moment.";
 "Le Wake-on-LAN doit être activé dans le BIOS du PC." = "Wake-on-LAN must be enabled in the PC's BIOS.";
 "Les PC de ton réseau qui font tourner Sunshine ou Apollo apparaissent ici." = "PCs on your network running Sunshine or Apollo show up here.";
 "Les quitter à la fin du stream" = "Quit them when the stream ends";
+"Liaison" = "Link";
 "Liaison de ce Mac" = "This Mac's link";
 "Lisse l'affichage quand les images arrivent irrégulièrement." = "Smooths the picture when frames arrive unevenly.";
 "Logiciel" = "Software";
@@ -254,6 +265,7 @@
 "Sans couleur" = "No color";
 "Selon ton écran" = "Based on your display";
 "Seulement celles que Moonvibe a ouvertes : une app déjà lancée reste ouverte." = "Only the ones Moonvibe opened: an app that was already running stays open.";
+"Signal Wi-Fi faible" = "Weak Wi-Fi signal";
 "Signale les réglages que ce Mac ou le PC ne gèrent pas." = "Flags settings this Mac or the PC doesn't support.";
 "Souris" = "Mouse";
 "Souris capturée" = "Mouse captured";
@@ -261,6 +273,9 @@
 "Souris à la manette" = "Gamepad mouse";
 "Stats" = "Stats";
 "Statut Discord" = "Discord status";
+"Stream correct" = "Decent stream";
+"Stream difficile" = "Rough stream";
+"Stream impeccable" = "Flawless stream";
 "Stéréo" = "Stereo";
 "Sunshine n'est pas installé ?" = "Sunshine isn't installed?";
 "Supprime les déchirures d'image, au prix d'un peu de latence." = "Removes screen tearing, at the cost of a little latency.";
@@ -283,6 +298,7 @@
 "Toujours" = "Always";
 "Tous les réglages…" = "All Settings…";
 "Trouver les PC automatiquement" = "Find PCs automatically";
+"Tu étais en Wi-Fi 2,4 GHz, plus lent et plus encombré : reconnecte-toi en 5 ou 6 GHz, ou branche un câble." = "You were on 2.4 GHz Wi-Fi, slower and more crowded: reconnect on 5 or 6 GHz, or plug in a cable.";
 "Turquoise" = "Teal";
 "Un autre PC répond à cette adresse" = "Another PC answers on this address";
 "Utilisée" = "In use";
@@ -299,6 +315,7 @@
 "Vérifie que ce PC répond à cette adresse" = "Checks that this PC answers on this address";
 "Wi-Fi %@ · canal %lld" = "Wi-Fi %@ · channel %lld";
 "Wi-Fi %@ · canal %lld · %@" = "Wi-Fi %@ · channel %lld · %@";
+"Wi-Fi 2,4 GHz" = "2.4 GHz Wi-Fi";
 "YUV 4:4:4" = "YUV 4:4:4";
 "·" = "·";
 "Écart moyen de la latence d'une mesure à l'autre" = "How much latency varies from one measurement to the next, on average";

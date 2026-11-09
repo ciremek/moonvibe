@@ -131,6 +131,31 @@ public:
     // Called by the decoder roughly every second while external stats are visible
     void publishStats(const StreamStats& stats);
 
+    // How the whole stream went, for the external UI to sum it up once it's over
+    struct StreamReport
+    {
+        // Time video was flowing, 0 when no frame ever arrived
+        double durationSecs;
+        int width;
+        int height;
+        int targetFps;
+        QString codec;
+        double receivedFps;
+        double renderedFps;
+        double networkDropPercent;
+        double jitterDropPercent;
+        uint32_t rttMs;
+        uint32_t rttVarianceMs;
+        double decodeMs;
+        // Each overflow flushes the audio queue: an audible cut
+        int audioQueueOverflows;
+    };
+    // Called by each video decoder as it's destroyed: switching to or from full screen
+    // recreates the decoder mid-stream, so the stream's totals add up here
+    void addDecoderStats(const VIDEO_STATS& stats);
+    // Complete once the decoder is gone, by the time sessionFinished() is emitted
+    StreamReport streamReport() const;
+
     enum StreamAction
     {
         SA_QUIT,
@@ -320,6 +345,11 @@ private:
     int m_ActiveVideoWidth;
     int m_ActiveVideoHeight;
     int m_ActiveVideoFrameRate;
+
+    // Totals for streamReport()
+    VIDEO_STATS m_ReportStats;
+    uint64_t m_ReportStreamingUs;
+    static std::atomic<int> s_AudioQueueOverflows;
 
     OpusMSDecoder* m_OpusDecoder;
     IAudioRenderer* m_AudioRenderer;

@@ -562,6 +562,8 @@ void SwiftUIShell::launch(const QString& computerUuid, int appId, const QPoint& 
 
     NvComputer* computer = findComputer(computerUuid);
     NvApp app;
+    // The address the stream goes through, for its report: LAN, VPN or the Internet
+    QString streamAddress;
     if (computer != nullptr) {
         QReadLocker lock(&computer->lock);
         for (const NvApp& candidate : computer->appList) {
@@ -570,6 +572,7 @@ void SwiftUIShell::launch(const QString& computerUuid, int appId, const QPoint& 
                 break;
             }
         }
+        streamAddress = computer->activeAddress.address();
     }
 
     if (computer == nullptr || !app.isInitialized()) {
@@ -662,9 +665,31 @@ void SwiftUIShell::launch(const QString& computerUuid, int appId, const QPoint& 
         // A new stream can't start until the quit is over, and it can't be cancelled
         setStatus(QStringLiteral("%1 se ferme sur le PC…"), true, false, false, { appName });
     });
-    connect(m_Session, &Session::sessionFinished, this, [this, restoreHome](int) {
+    connect(m_Session, &Session::sessionFinished, this, [this, restoreHome, computerUuid, appName, streamAddress](int) {
         restoreHome();
         setStatus(m_LaunchError, false, !m_LaunchError.isEmpty(), true, m_LaunchErrorArgs);
+
+        Session::StreamReport report = m_Session->streamReport();
+        if (report.durationSecs > 0) {
+            mv_ui_stream_report(toJson(QJsonObject {
+                { "computerId", computerUuid },
+                { "app", appName },
+                { "address", streamAddress },
+                { "durationSecs", report.durationSecs },
+                { "width", report.width },
+                { "height", report.height },
+                { "targetFps", report.targetFps },
+                { "codec", report.codec },
+                { "receivedFps", report.receivedFps },
+                { "renderedFps", report.renderedFps },
+                { "networkDropPercent", report.networkDropPercent },
+                { "jitterDropPercent", report.jitterDropPercent },
+                { "rttMs", static_cast<int>(report.rttMs) },
+                { "rttVarianceMs", static_cast<int>(report.rttVarianceMs) },
+                { "decodeMs", report.decodeMs },
+                { "audioCuts", report.audioQueueOverflows },
+            }).constData());
+        }
     });
     connect(m_Session, &Session::readyForDeletion, this, [this] {
         m_Session->deleteLater();

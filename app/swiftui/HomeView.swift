@@ -338,6 +338,11 @@ struct MVComputerHome: View {
                     .transition(bannerTransition)
             }
 
+            if let summary = model.lastReport, summary.report.computerId == computer.id {
+                MVStreamReportCard(summary: summary) { model.lastReport = nil }
+                    .transition(bannerTransition)
+            }
+
             GeometryReader { geometry in
                 let columnCount = max(1, Int((geometry.size.width - 48 + spacing) / (tileMinWidth + spacing)))
                 ScrollView {
@@ -399,6 +404,7 @@ struct MVComputerHome: View {
             MVLaunchBar(model: model, computer: computer, app: selected)
         }
         .animation(.mvState, value: bannerKind)
+        .animation(.mvState, value: model.lastReport)
         .navigationTitle(computer.name)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -767,7 +773,14 @@ struct MVLaunchBar: View {
                 .animation(.mvState, value: model.status)
 
             Spacer(minLength: 0)
+
+            // Before a stream, while the Mac is on a link that's likely to hurt it
+            if let warning = model.link.warning, !model.busy {
+                MVLinkWarningLabel(warning: warning)
+                    .transition(.opacity)
+            }
         }
+        .animation(.mvState, value: model.link.warning)
         .padding(.horizontal, 24)
         .padding(.vertical, 14)
         .overlay(alignment: .top) { Divider() }

@@ -306,6 +306,10 @@ void FFmpegVideoDecoder::reset()
     m_FrontendRenderer = m_BackendRenderer = nullptr;
 
     if (m_CurrentTestMode != TestMode::TestFrameOnly) {
+        // The session's report sums up every decoder of the stream
+        if (Session::get() != nullptr) {
+            Session::get()->addDecoderStats(m_GlobalVideoStats);
+        }
         logVideoStats(m_GlobalVideoStats, "Global video stats");
     }
     else {

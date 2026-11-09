@@ -71,6 +71,7 @@ CONNECTION_LISTENER_CALLBACKS Session::k_ConnCallbacks = {
 
 Session* Session::s_ActiveSession;
 QSemaphore Session::s_ActiveSessionSemaphore(1);
+std::atomic<int> Session::s_AudioQueueOverflows;
 
 void Session::clStageStarting(int stage)
 {
@@ -152,6 +153,11 @@ void Session::clConnectionTerminated(int errorCode)
 
 void Session::clLogMessage(const char* format, ...)
 {
+    // moonlight-common-c only logs these: the stream report counts them as audio cuts
+    if (strstr(format, "Audio packet queue overflow") != nullptr) {
+        s_AudioQueueOverflows++;
+    }
+
     va_list ap;
 
     va_start(ap, format);
@@ -590,11 +596,13 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_ShouldExit(false),
       m_AsyncConnectionSuccess(false),
       m_PortTestResults(0),
+      m_ReportStreamingUs(0),
       m_OpusDecoder(nullptr),
       m_AudioRenderer(nullptr),
       m_AudioSampleCount(0),
       m_DropAudioEndTime(0)
 {
+    SDL_zero(m_ReportStats);
 }
 
 Session::~Session()
@@ -638,6 +646,68 @@ void Session::requestStreamAction(int action)
 void Session::publishStats(const StreamStats& stats)
 {
     emit statsUpdated(stats);
+}
+
+void Session::addDecoderStats(const VIDEO_STATS& stats)
+{
+    // Decoders that only probed the hardware never got a frame
+    if (stats.totalFrames == 0 || stats.measurementStartUs == 0) {
+        return;
+    }
+
+    m_ReportStats.receivedFrames += stats.receivedFrames;
+    m_ReportStats.decodedFrames += stats.decodedFrames;
+    m_ReportStats.renderedFrames += stats.renderedFrames;
+    m_ReportStats.totalFrames += stats.totalFrames;
+    m_ReportStats.networkDroppedFrames += stats.networkDroppedFrames;
+    m_ReportStats.pacerDroppedFrames += stats.pacerDroppedFrames;
+    m_ReportStats.totalDecodeTimeUs += stats.totalDecodeTimeUs;
+    if (stats.lastRtt != 0) {
+        m_ReportStats.lastRtt = stats.lastRtt;
+        m_ReportStats.lastRttVariance = stats.lastRttVariance;
+    }
+    m_ReportStreamingUs += LiGetMicroseconds() - stats.measurementStartUs;
+}
+
+Session::StreamReport Session::streamReport() const
+{
+    StreamReport report = {};
+    if (m_ReportStreamingUs == 0) {
+        return report;
+    }
+
+    const VIDEO_STATS& stats = m_ReportStats;
+    double seconds = m_ReportStreamingUs / 1000000.0;
+    report.durationSecs = seconds;
+    report.width = m_ActiveVideoWidth;
+    report.height = m_ActiveVideoHeight;
+    report.targetFps = m_ActiveVideoFrameRate;
+
+    if (m_ActiveVideoFormat & VIDEO_FORMAT_MASK_AV1) {
+        report.codec = QStringLiteral("AV1");
+    }
+    else if (m_ActiveVideoFormat & VIDEO_FORMAT_MASK_H265) {
+        report.codec = QStringLiteral("HEVC");
+    }
+    else {
+        report.codec = QStringLiteral("H.264");
+    }
+    if (m_ActiveVideoFormat & VIDEO_FORMAT_MASK_10BIT) {
+        report.codec += QStringLiteral(" 10-bit");
+    }
+    if (m_ActiveVideoFormat & VIDEO_FORMAT_MASK_YUV444) {
+        report.codec += QStringLiteral(" 4:4:4");
+    }
+
+    report.receivedFps = stats.receivedFrames / seconds;
+    report.renderedFps = stats.renderedFrames / seconds;
+    report.networkDropPercent = 100.0 * stats.networkDroppedFrames / stats.totalFrames;
+    report.jitterDropPercent = stats.decodedFrames != 0 ? 100.0 * stats.pacerDroppedFrames / stats.decodedFrames : 0;
+    report.rttMs = stats.lastRtt;
+    report.rttVarianceMs = stats.lastRttVariance;
+    report.decodeMs = stats.decodedFrames != 0 ? (stats.totalDecodeTimeUs / 1000.0) / stats.decodedFrames : 0;
+    report.audioQueueOverflows = s_AudioQueueOverflows;
+    return report;
 }
 
 void Session::applyAutoResolution()
@@ -1902,6 +1972,7 @@ void Session::start()
 
     // We're now active
     s_ActiveSession = this;
+    s_AudioQueueOverflows = 0;
 
     // Initialize the gamepad code with our preferences
     // NB: m_InputHandler must be initialize before starting the connection.
