@@ -468,11 +468,18 @@ int main(int argc, char *argv[])
     if (IS_UNSPECIFIED_HANDLE(oldConErr))
 #endif
     {
-        // NewOnly refuses to reuse (or follow a link at) an existing path, and the log is
-        // private to the user since it names the host PC, its addresses and the apps launched
         s_LoggerFile = new QFile(tempDir.filePath(QString("Moonvibe-%1.log").arg(QDateTime::currentSecsSinceEpoch())));
-        if (s_LoggerFile->open(QIODevice::WriteOnly | QIODevice::NewOnly | QIODevice::Text)) {
+
+        // NewOnly refuses to reuse (or follow a link at) an existing path, and the log is
+        // private to the user from its creation since it names the host PC, its addresses
+        // and the apps launched
+        QIODevice::OpenMode logOpenMode = QIODevice::WriteOnly | QIODevice::Text | QIODevice::NewOnly;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 3, 0)
+        if (s_LoggerFile->open(logOpenMode, QFileDevice::ReadOwner | QFileDevice::WriteOwner)) {
+#else
+        if (s_LoggerFile->open(logOpenMode)) {
             s_LoggerFile->setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+#endif
             QTextStream(stderr) << "Redirecting log output to " << s_LoggerFile->fileName() << Qt::endl;
             s_LoggerStream.setDevice(s_LoggerFile);
         }
@@ -1050,7 +1057,7 @@ int main(int argc, char *argv[])
 
     if (hasGUI) {
         engine.rootContext()->setContextProperty("initialView", initialView);
-        engine.rootContext()->setContextProperty("runConfigChecks", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
+        engine.rootContext()->setContextProperty("isGuiLaunch", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
 
         // Load the main.qml file
         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));

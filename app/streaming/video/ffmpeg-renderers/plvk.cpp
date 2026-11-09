@@ -2,6 +2,7 @@
 
 #include "streaming/session.h"
 #include "streaming/streamutils.h"
+#include "utils.h"
 
 // Implementation in plvk_c.c
 #define PL_LIBAV_IMPLEMENTATION 0
@@ -374,6 +375,41 @@ bool PlVkRenderer::tryInitializeDevice(VkPhysicalDevice device, VkPhysicalDevice
 #endif
         vkParams.extra_queues = VK_QUEUE_FLAG_BITS_MAX_ENUM;
     }
+
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(60, 31, 101) && defined(VK_KHR_internally_synchronized_queues)
+    // libplacebo needs explicit opt-in to use internally synchronized queues, since
+    // it requires cooperation with the app (ex: using vkGetDeviceQueue2). We know
+    // FFmpeg 9.0+ always wants internally synchronized queues if available, so we
+    // will turn it on when supported by the physical device.
+    if (isExtensionSupportedByPhysicalDevice(device, "VK_KHR_internally_synchronized_queues")) {
+        bool internallySynchronizedQueues;
+        if (!Utils::getEnvironmentVariableOverride("PLVK_INT_SYNC_QUEUES", &internallySynchronizedQueues)) {
+#if LIBAVUTIL_VERSION_MAJOR < 62
+            // The Gamescope WSI layer currently breaks apps using internally synchronized queues
+            // (failing to use vkGetDeviceQueue2), so we disable this feature when the Gamescope
+            // WSI layer is enabled. See gamescope#2261 for details.
+            internallySynchronizedQueues = (qEnvironmentVariableIntValue("ENABLE_GAMESCOPE_WSI") == 0 ||
+                                            qEnvironmentVariableIntValue("DISABLE_GAMESCOPE_WSI") == 1);
+#else
+            // We have no choice but to enable it since the queue locking callbacks are gone
+            internallySynchronizedQueues = true;
+#endif
+        }
+
+        static VkPhysicalDeviceInternallySynchronizedQueuesFeaturesKHR featInternalSyncQueues = {
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INTERNALLY_SYNCHRONIZED_QUEUES_FEATURES_KHR,
+            nullptr,
+            internallySynchronizedQueues,
+        };
+
+        static const VkPhysicalDeviceFeatures2 features = {
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            (void*)&featInternalSyncQueues,
+        };
+
+        vkParams.features = &features;
+    }
+#endif
 
     {
         // Don't let Qt take DRM master from us during pl_vulkan_create()
@@ -769,6 +805,7 @@ bool PlVkRenderer::populateQueues(int videoFormat)
     vkDeviceContext->nb_comp_queues = m_Vulkan->queue_compute.count;
 
     // Select a video decode queue that is capable of decoding our chosen format
+    vkDeviceContext->queue_family_decode_index = -1;
     for (uint32_t i = 0; i < queueFamilyCount; i++) {
         if (queueFamilies[i].queueFamilyProperties.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR) {
             if (videoFormat & VIDEO_FORMAT_MASK_H264) {
@@ -891,6 +928,16 @@ void PlVkRenderer::waitToRender()
     if (pl_gpu_is_failed(m_Vulkan->gpu)) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                      "GPU is in failed state. Recreating renderer.");
+        SDL_Event event;
+        event.type = SDL_RENDER_DEVICE_RESET;
+        SDL_PushEvent(&event);
+        return;
+    }
+
+    // If a swapchain (re)creation failed, m_Swapchain is NULL. We can't render
+    // or resize it, and a device reset has already been requested, so skip this
+    // frame and let the main thread recreate the renderer.
+    if (m_Swapchain == nullptr) {
         SDL_Event event;
         event.type = SDL_RENDER_DEVICE_RESET;
         SDL_PushEvent(&event);
