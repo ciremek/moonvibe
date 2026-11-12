@@ -556,6 +556,9 @@ win32 {
     QMAKE_LFLAGS += /MANIFEST:embed /MANIFESTINPUT:$${PWD}/Moonlight.exe.manifest
 }
 macx {
+    # Info.plist's LSMinimumSystemVersion, which the Swift shell targets too
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 14.4
+
     # Create Info.plist in object dir with the correct version string. The bundle
     # carries Moonvibe's own version; version.txt stays the upstream Moonlight one.
     system(cp $$PWD/Info.plist $$OUT_PWD/Info.plist)
@@ -631,7 +634,11 @@ macx {
     SWIFTUI_FR.files = $$files($$PWD/swiftui/Localization/fr.lproj/*.strings)
     SWIFTUI_FR.path = Contents/Resources/fr.lproj
     QMAKE_BUNDLE_DATA += SWIFTUI_EN SWIFTUI_FR
-    QMAKE_RPATHDIR += @executable_path/../Frameworks
+
+    # libMoonvibeUI and Sparkle live in Contents/Frameworks, as the prebuilts do
+    !contains(QMAKE_RPATHDIR, @executable_path/../Frameworks) {
+        QMAKE_RPATHDIR += @executable_path/../Frameworks
+    }
 }
 
 VERSION = "$$cat(version.txt)"

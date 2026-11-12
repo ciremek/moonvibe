@@ -36,42 +36,57 @@ fail()
 
 echo "Staging Moonvibe $VERSION"
 # macdeployqt rewrites the bundle in place, so it works on a copy: the dev
-# build keeps linking against Homebrew's Qt
+# build keeps linking against libs/qt
 cp -R build/app/Moonvibe.app "$STAGING/"
 xattr -cr "$APP"
 
 # No QML modules: the SwiftUI shell loads no QML, which only serves the
-# command line modes and the MOONVIBE_QML fallback of development builds.
-# Homebrew splits Qt into one prefix per module and links every framework
-# into /opt/homebrew/lib, which lets macdeployqt resolve what plugins need.
+# command line modes and the MOONVIBE_QML fallback of development builds
 echo "Bundling Qt"
-macdeployqt "$APP" -libpath=/opt/homebrew/lib || fail "macdeployqt failed!"
-
-# Plugins Moonvibe never uses, whose Qt modules (QtPdf, QtVirtualKeyboard)
-# macdeployqt can't resolve
-rm -f "$APP/Contents/PlugIns/imageformats/libqpdf.dylib"
-rm -rf "$APP/Contents/PlugIns/platforminputcontexts"
+libs/qt/current/bin/macdeployqt "$APP" || fail "macdeployqt failed!"
 
 # Sparkle's XPC services only serve sandboxed apps
 rm -rf "$APP/Contents/Frameworks/Sparkle.framework/XPCServices" \
     "$APP/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices"
 
-# A library's own install name (otool -D) doesn't matter for loading: only
-# the libraries it loads must come from the bundle
-echo "Checking that nothing still loads from Homebrew"
+# Moonvibe runs on Apple Silicon only (its Swift shell is built for arm64): drop the
+# Intel half of the universal Qt, Sparkle and prebuilt libraries
+echo "Keeping arm64 only"
+ditto --arch arm64 "$APP" "$STAGING/arm64/Moonvibe.app" || fail "Thinning failed!"
+rm -rf "$APP"
+mv "$STAGING/arm64/Moonvibe.app" "$APP"
+
+# Every library must come from the bundle or the system, and run on the macOS the
+# app asks for: one built for a newer macOS doesn't load on older ones. A library's
+# own install name (otool -D) doesn't matter for loading, only what it loads.
+MINIMUM_MACOS=$(/usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$APP/Contents/Info.plist")
+echo "Checking the bundled libraries (macOS $MINIMUM_MACOS and later)"
 while IFS= read -r -d '' binary; do
     file "$binary" | grep -q "Mach-O" || continue
-    ownName=$(otool -D "$binary" | tail -n +2)
-    if otool -L "$binary" | tail -n +2 | awk '{print $1}' | grep -v -x -F "${ownName:-none}" | grep -q "^/opt/homebrew/"; then
-        otool -L "$binary" | grep "/opt/homebrew/" 1>&2
-        fail "$binary still loads libraries from Homebrew"
+    ownName=$(otool -arch arm64 -D "$binary" | tail -n +2)
+    outside=$(otool -arch arm64 -L "$binary" | tail -n +2 | awk '{print $1}' | grep -v -x -F "${ownName:-none}" \
+        | grep -v -E "^(@rpath|@executable_path|@loader_path)/|^/usr/lib/|^/System/" || true)
+    if [ -n "$outside" ]; then
+        echo "$outside" 1>&2
+        fail "$binary loads libraries from outside the bundle"
+    fi
+    minos=$(otool -arch arm64 -l "$binary" | awk '/LC_BUILD_VERSION/ { found = 1 } found && /minos/ { print $2; exit }')
+    if [ -n "$minos" ] && [ "$(printf '%s\n%s\n' "$minos" "$MINIMUM_MACOS" | sort -V | tail -1)" != "$MINIMUM_MACOS" ]; then
+        fail "$binary needs macOS $minos, newer than $MINIMUM_MACOS"
     fi
 done < <(find "$APP" -type f -print0)
 
+# Thinning broke the signatures. Sparkle's helpers sit where --deep doesn't look, and
+# an unsigned Autoupdate would break every update after this one: inside out.
 echo "Signing ad hoc"
 xattr -cr "$APP"
+SPARKLE=$APP/Contents/Frameworks/Sparkle.framework/Versions/B
+codesign --force --sign - "$SPARKLE/Autoupdate" || fail "Signing Autoupdate failed!"
+codesign --force --sign - "$SPARKLE/Updater.app" || fail "Signing Updater.app failed!"
+codesign --force --sign - "$APP/Contents/Frameworks/Sparkle.framework" || fail "Signing Sparkle failed!"
 codesign --force --deep --sign - "$APP" || fail "Signing failed!"
 codesign --verify --deep --strict "$APP" || fail "Signature check failed!"
+codesign --verify --strict "$SPARKLE/Autoupdate" || fail "Autoupdate's signature check failed!"
 
 echo "Creating the DMG"
 # dmgbuild, pinned, in a virtual environment of its own under build/
@@ -92,7 +107,6 @@ SPARKLE_BIN=libs/sparkle/bin
 APPCAST=$RELEASE_DIR/appcast.xml
 rm -f "$APPCAST"
 ENCLOSURE=$("$SPARKLE_BIN/sign_update" "$DMG") || fail "Couldn't sign the DMG: is Sparkle's key in the login Keychain?"
-MINIMUM_MACOS=$(/usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$APP/Contents/Info.plist")
 python3 -I scripts/make-appcast.py "$VERSION" \
     "https://github.com/ciremek/moonvibe/releases/download/moonvibe-v$VERSION/Moonvibe-$VERSION.dmg" \
     "$ENCLOSURE" "$MINIMUM_MACOS" CHANGELOG.md > "$STAGING/appcast.xml" || fail "Couldn't create the appcast"
