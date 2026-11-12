@@ -58,4 +58,24 @@ extension MVUpdater: @preconcurrency SPUStandardUserDriverDelegate {
     func standardUserDriverWillFinishUpdateSession() {
         model?.availableUpdate = nil
     }
+
+    /// The notes cover every version since 0.5.0 (scripts/make-appcast.py): only the ones
+    /// newer than this copy stay.
+    func standardUserDriverWillShowReleaseNotesText(_ releaseNotes: NSAttributedString, forUpdate update: SUAppcastItem,
+                                                   withBundleDisplayVersion bundleDisplayVersion: String,
+                                                   bundleVersion: String) -> NSAttributedString? {
+        let text = releaseNotes.string as NSString
+        var cut: Int?
+        text.enumerateSubstrings(in: NSRange(location: 0, length: text.length), options: .byParagraphs) { paragraph, range, _, stop in
+            // Version headings read "0.6.0 · Check-up · November 9, 2026"
+            guard let version = paragraph?.components(separatedBy: " · ").first,
+                  version.range(of: #"^\d+(\.\d+)+$"#, options: .regularExpression) != nil else { return }
+            if SUStandardVersionComparator.default.compareVersion(version, toVersion: bundleVersion) != .orderedDescending {
+                cut = range.location
+                stop.pointee = true
+            }
+        }
+        guard let cut else { return nil }
+        return releaseNotes.attributedSubstring(from: NSRange(location: 0, length: cut))
+    }
 }
