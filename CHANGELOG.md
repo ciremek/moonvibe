@@ -2,6 +2,15 @@
 
 Moonvibe versions, newest first. Each one builds on [Moonlight PC](https://github.com/moonlight-stream/moonlight-qt): version 6.2 up to Moonvibe 0.5.4, then Moonlight's code of November 5, 2026.
 
+## 0.6.1 · Spring cleaning · November 12, 2026
+
+### Fixed
+- **Really runs on macOS 14.4 and later**, as announced: Moonvibe now builds on the official Qt, like Moonlight, instead of Homebrew's, whose libraries required the very latest macOS.
+
+### Improved
+- **Half the size**: the app goes from 163 to 80 MB and the download from 64 to 33 MB, with only the Apple Silicon code and none of Homebrew's extra libraries.
+- **Update notes cover every version you skipped**, not just the latest one.
+
 ## 0.6.0 · Check-up · November 9, 2026
 
 ### New

@@ -86,18 +86,19 @@ xattr -dr com.apple.quarantine /Applications/Moonvibe.app
 
 ## Build Moonvibe
 
-You need Xcode and Qt 6 from Homebrew (`brew install qt`).
+You need Xcode. The scripts download the rest into `libs/`.
 
 ```bash
 git clone --recursive -b moonvibe https://github.com/ciremek/moonvibe.git
 cd moonvibe
+./scripts/setup-qt.sh           # the official Qt build, the one Moonlight uses
 python3 setup-deps.py           # FFmpeg, SDL and friends, prebuilt by Moonlight
 ./scripts/setup-sparkle.sh      # Sparkle, the update framework
 ./build-mac.sh                  # build/app/Moonvibe.app
 ./scripts/package-moonvibe.sh   # build/release: the DMG and its appcast (sets up dmgbuild the first time)
 ```
 
-Packaging signs the DMG and the appcast with the maintainer's Sparkle key, from the login Keychain.
+Packaging signs the DMG and the appcast with the maintainer's Sparkle key, from the login Keychain. `scripts/publish-release.sh` then publishes them as the version's GitHub release, with its CHANGELOG section as notes, and checks the files Sparkle will download.
 
 ## Versions
 
