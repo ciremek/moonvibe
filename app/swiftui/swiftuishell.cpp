@@ -458,7 +458,7 @@ void SwiftUIShell::setUserAddresses(const QString& computerUuid, const QJsonArra
 
 void SwiftUIShell::testAddress(const QString& computerUuid, const QString& text)
 {
-    auto report = [this, computerUuid, text](const QString& result) {
+    auto report = [computerUuid, text](const QString& result) {
         mv_ui_address_test_result(toJson(QJsonObject {
             { "uuid", computerUuid },
             { "address", text },

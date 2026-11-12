@@ -3,6 +3,7 @@
 
 **/.vs/
 .vscode/
+.DS_Store
 build/
 libs/
 config.tests/*/.qmake.stash

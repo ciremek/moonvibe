@@ -21,10 +21,10 @@ fi
 
 echo "Downloading Qt $QT_VERSION"
 # Only the modules Moonvibe uses: Core, Gui, Network, Quick, Quick Controls and Svg, plus
-# the tools (macdeployqt comes with qtbase)
-PYTHONWARNINGS=ignore "$AQT_ENV/bin/aqt" install-qt mac desktop "$QT_VERSION" clang_64 \
+# the tools (macdeployqt comes with qtbase). It runs from build/, where it writes its log.
+(cd build && PYTHONWARNINGS=ignore "../$AQT_ENV/bin/aqt" install-qt mac desktop "$QT_VERSION" clang_64 \
     --archives qtbase qtdeclarative qtsvg qttools \
-    --outputdir "$TARGET"
+    --outputdir "../$TARGET")
 
 # build-mac.sh and the packaging script use libs/qt/current
 ln -sfn "$QT_VERSION/macos" "$TARGET/current"
