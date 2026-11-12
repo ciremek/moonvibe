@@ -2,6 +2,16 @@
 
 Moonvibe versions, newest first. Each one builds on [Moonlight PC](https://github.com/moonlight-stream/moonlight-qt): version 6.2 up to Moonvibe 0.5.4, then Moonlight's code of November 5, 2026.
 
+## 0.7.0 · Your shelf · November 12, 2026
+
+### New
+- **Game posters**: Home shows your games as posters, and the selected one casts the light of its cover. In Settings, Advanced, pick the covers your PC serves, Moonvibe's own posters drawn from each tile's icon and color, or the icon tiles.
+- **Your own posters**: right-click a game, Settings, Choose an Image… or drop an image on its tile.
+- **Add a game**: the + tile at the end of the grid walks you through adding a game in Sunshine or Apollo. Search Steam for its poster and launch command, or pick League of Legends, Valorant or Fortnite from the known launchers. Copy each value in one click, and Moonvibe spots the game as soon as you save it, poster included.
+- **Add a game from the PC**: when its path is only on the PC, Moonvibe streams the PC's desktop with the steps on screen, and ⌃⌥⇧V types the game's name there.
+- **Arrange your games**: drag the tiles into the order you like, on each PC. Restore the PC's Order, in the ⋯ menu, puts them back.
+- **Stream history**: Moonvibe now keeps a record of your streams (game, duration, quality, connection) for a recap to come. It stays on this Mac.
+
 ## 0.6.1 · Spring cleaning · November 12, 2026
 
 ### Fixed

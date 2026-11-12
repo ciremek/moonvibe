@@ -29,6 +29,8 @@ Everything Moonlight does is still there (HEVC and AV1, HDR, 7.1 audio, gamepads
 - **In-stream panels**: a bar with the PC and the app, a live stats card, and a shortcut reminder while the mouse is captured.
 - **Quality presets** Fluide (smooth), Équilibré (balanced), Max and Perso (custom), matched to your display's resolution and refresh rate.
 - **Keyboard shortcuts**: <kbd>⌘K</kbd> to search, <kbd>⌘1</kbd> to <kbd>⌘3</kbd> to launch the first apps, <kbd>⌘,</kbd> for settings.
+- **Game posters**: the covers your PC serves, posters Moonvibe draws from each tile's icon and color, or icon tiles. Drag the tiles into your own order.
+- **Add a game in a few steps**: a guide for Sunshine and Apollo finds a Steam game's poster and launch command, knows a few launchers, can walk you through it on the PC's desktop, and dresses the game up as soon as it shows up.
 - **Launch from the Dock or the menu bar**: your recent games in the Dock icon's menu, and in an optional menu bar icon. Moonvibe can even leave the Dock and live in the menu bar.
 - **Motion that tells you what's happening**: waking a PC shows each magic packet going out and lights the tiles back up when it answers, and a launch bursts into stars. Reduce Motion is honored.
 - **In English and French**, following your Mac's language. Light and dark appearances, VoiceOver labels.
@@ -36,7 +38,7 @@ Everything Moonlight does is still there (HEVC and AV1, HDR, 7.1 audio, gamepads
 
 ### 🎛️ Settings per PC and per app
 - **Right-click a PC** to rename it, see the addresses Moonvibe detected, and add as many of your own as you like (Tailscale, WireGuard, a DDNS name…). A quick test checks that the right PC answers, and one pairing covers every address.
-- **Right-click an app** to give its tile an icon and a color, and to give it its own quality: a lighter bitrate for a competitive game, say.
+- **Right-click an app** to give its tile an icon, a color and a poster of your own, and to give it its own quality: a lighter bitrate for a competitive game, say.
 - **Open Mac apps with a stream**: Discord, a USB-over-IP server like VirtualHere… They open in the background when the stream starts and quit when it ends, if Moonvibe opened them.
 
 ### ⚡ Wake & Go
