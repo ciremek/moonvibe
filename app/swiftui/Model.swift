@@ -8,6 +8,9 @@ import SwiftUI
 struct MVApp: Decodable, Identifiable, Hashable {
     let id: Int
     let name: String
+    /// The cover the PC serves, cached as a file, and when that file last changed.
+    var boxArt: String?
+    var boxArtDate: Double?
 
     var symbolName: String {
         let lower = name.lowercased()
@@ -29,7 +32,8 @@ struct MVComputer: Decodable, Identifiable, Hashable {
     /// "AA:BB:CC:DD:EE:FF" as reported by the PC, or empty.
     let mac: String
     let runningAppId: Int
-    let apps: [MVApp]
+    /// In the order the user gave them on Home, else the PC's.
+    var apps: [MVApp]
     /// Detected addresses first, then the ones added by hand.
     let addresses: [MVAddress]
 
@@ -249,6 +253,29 @@ struct MVAppRef: Hashable {
     let appId: Int
 }
 
+/// A game being added on a PC (MVAddAppSheet): what Moonvibe gives it once it shows up.
+struct MVPendingApp: Equatable {
+    let computerId: String
+    let name: String
+    let settings: MVAppSettings
+    /// What to start, when the guide knows it: a Steam or launcher link goes in Sunshine's
+    /// detached commands, a program in its command.
+    let command: String?
+    let detached: Bool
+    /// The PC's apps when the guide opened: one that wasn't there is the new one.
+    let knownAppIds: Set<Int>
+    /// Set once it showed up on the PC.
+    var foundAppId: Int?
+}
+
+/// The guide's steps, shown over a stream of the PC's desktop to add a game from there.
+struct MVStreamGuide: Equatable {
+    let appName: String
+    let computerName: String
+    /// The desktop app the stream is for: only that stream shows the steps.
+    let desktopName: String
+}
+
 // MARK: - App settings
 
 /// Tile colors, from a palette that reads in both appearances.
@@ -290,6 +317,9 @@ struct MVAppSettings: Codable, Equatable {
     /// SF Symbol for the tile, else one guessed from the app's name.
     var symbol: String?
     var color: MVTileColor?
+    /// A poster picked on this Mac, by file name in MVPosters.directory: it wins over the
+    /// cover the PC serves.
+    var poster: String?
     /// Quality for this app's streams, else the usual one.
     var preset: MVPreset?
     /// Mac apps to open when a stream of this app starts, by path.
@@ -405,6 +435,10 @@ struct MVRecent: Codable, Identifiable, Hashable {
 @MainActor
 final class MVModel: ObservableObject {
     @Published var computers: [MVComputer] = []
+    /// The computers as the host sent them, before the user's app order.
+    private var hostComputers: [MVComputer] = []
+    /// App ids in the order the user dragged them into, by computer id.
+    private var appOrder: [String: [Int]] = [:]
     @Published var selectedComputerId: String?
     @Published var selectedAppId: Int?
     @Published private(set) var prefs = MVPrefs()
@@ -448,6 +482,14 @@ final class MVModel: ObservableObject {
     @Published private(set) var launchingApp: MVAppRef?
     /// Launches actually started, by app: each one bursts out of its tile.
     @Published private(set) var launchStarts: [MVAppRef: Int] = [:]
+    /// Apps just added through the guide, by app: they burst out of their tile too.
+    @Published private(set) var arrivals: [MVAppRef: Int] = [:]
+    /// Computer whose "add a game" guide is open.
+    @Published var addAppComputerId: String?
+    /// The game the guide waits for, even once closed.
+    @Published private(set) var pendingApp: MVPendingApp?
+    /// Steps to show over the next stream, to add the game from the PC itself.
+    private(set) var streamGuide: MVStreamGuide?
     /// How this Mac reaches the network right now.
     @Published private(set) var link = MVLink(wired: false, wifi: nil)
     /// The report on the last stream, until it's closed or another stream starts.
@@ -484,6 +526,7 @@ final class MVModel: ObservableObject {
     private static let wakeOptionsKey = "MoonvibeWakeOptions"
     private static let addressLabelsKey = "MoonvibeAddressLabels"
     private static let appSettingsKey = "MoonvibeAppSettings"
+    private static let appOrderKey = "MoonvibeAppOrder"
 
     init() {
         if let data = UserDefaults.standard.data(forKey: Self.recentsKey),
@@ -501,6 +544,10 @@ final class MVModel: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: Self.appSettingsKey),
            let decoded = try? JSONDecoder().decode([String: MVAppSettings].self, from: data) {
             appSettings = decoded
+        }
+        MVPosters.prune(keeping: Set(appSettings.values.compactMap(\.poster)))
+        if let order = UserDefaults.standard.dictionary(forKey: Self.appOrderKey) as? [String: [Int]] {
+            appOrder = order
         }
         linkMonitor = MVLinkMonitor { [weak self] link in
             if self?.link != link {
@@ -610,7 +657,10 @@ final class MVModel: ObservableObject {
     // MARK: Updates from the host
 
     func update(computers: [MVComputer]) {
+        hostComputers = computers
+        let computers = ordered(computers)
         self.computers = computers
+        matchPendingApp()
         // Launch the app waiting for the previous one to quit
         if let pending = launchAfterQuit,
            let computer = computers.first(where: { $0.id == pending.computerId }),
@@ -846,12 +896,134 @@ final class MVModel: ObservableObject {
         setAddressLabels([:], for: computer)
         appSettings = appSettings.filter { !$0.key.hasPrefix("\(computer.id):") }
         saveAppSettings()
+        setAppOrder(nil, of: computer.id)
         sendAction?(["action": "deleteHost", "uuid": computer.uuid])
     }
 
     func cancelLaunch() {
         guard busy, cancellable else { return }
         sendAction?(["action": "cancel"])
+    }
+
+    // MARK: App order
+
+    /// Puts the dragged app in another one's place on Home.
+    func moveApp(_ appId: Int, to targetId: Int, on computer: MVComputer) {
+        guard appId != targetId,
+              var ids = computers.first(where: { $0.id == computer.id })?.apps.map(\.id),
+              let from = ids.firstIndex(of: appId), let to = ids.firstIndex(of: targetId) else { return }
+        ids.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+        setAppOrder(ids, of: computer.id)
+    }
+
+    func hasCustomAppOrder(_ computer: MVComputer) -> Bool {
+        appOrder[computer.id] != nil
+    }
+
+    /// Back to the order the PC lists its apps in.
+    func resetAppOrder(of computer: MVComputer) {
+        setAppOrder(nil, of: computer.id)
+    }
+
+    private func setAppOrder(_ ids: [Int]?, of computerId: String) {
+        appOrder[computerId] = ids
+        UserDefaults.standard.set(appOrder, forKey: Self.appOrderKey)
+        computers = ordered(hostComputers)
+    }
+
+    /// The user's order first; apps added since then follow, as the PC lists them.
+    private func ordered(_ computers: [MVComputer]) -> [MVComputer] {
+        computers.map { computer in
+            guard let order = appOrder[computer.id] else { return computer }
+            var rank: [Int: Int] = [:]
+            for (index, id) in order.enumerated() where rank[id] == nil {
+                rank[id] = index
+            }
+            var sorted = computer
+            sorted.apps = computer.apps.enumerated().sorted { a, b in
+                (rank[a.element.id] ?? Int.max, a.offset) < (rank[b.element.id] ?? Int.max, b.offset)
+            }.map(\.element)
+            return sorted
+        }
+    }
+
+    // MARK: Adding an app
+
+    func openAddApp(on computer: MVComputer) {
+        addAppComputerId = computer.id
+    }
+
+    /// Waits for the game to show up on the PC, to give it its settings and poster.
+    func watchForApp(named name: String, settings: MVAppSettings, command: String?, detached: Bool,
+                     knownAppIds: Set<Int>, on computer: MVComputer) {
+        pendingApp = MVPendingApp(computerId: computer.id, name: name, settings: settings, command: command,
+                                  detached: detached, knownAppIds: knownAppIds)
+        matchPendingApp()
+    }
+
+    /// Streams the PC's desktop with the guide's steps on screen, so the game's path can be
+    /// found and copied on the PC. The game's name goes to this Mac's clipboard, which
+    /// ⌃⌥⇧V types into the stream.
+    func addFromPC(using desktop: MVApp, on computer: MVComputer) {
+        guard let pending = pendingApp else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(pending.name, forType: .string)
+        streamGuide = MVStreamGuide(appName: pending.name, computerName: computer.name, desktopName: desktop.name)
+        closeAddApp()
+        requestLaunch(desktop, on: computer)
+    }
+
+    func stopWatchingForApp() {
+        pendingApp = nil
+    }
+
+    /// Asks the PC for its apps now: Moonvibe otherwise checks every 30 seconds or so.
+    func refreshApps(on computer: MVComputer) {
+        sendAction?(["action": "refreshApps", "uuid": computer.uuid])
+    }
+
+    /// Closes the guide. A game that showed up gets selected and bursts out of its tile.
+    func closeAddApp() {
+        addAppComputerId = nil
+        guard let pending = pendingApp, let appId = pending.foundAppId else { return }
+        pendingApp = nil
+        celebrateArrival(MVAppRef(computerId: pending.computerId, appId: appId))
+    }
+
+    /// The added game: the one named as in the guide, else the only new one (renamed on the PC).
+    private func matchPendingApp() {
+        guard var pending = pendingApp, pending.foundAppId == nil,
+              let computer = computers.first(where: { $0.id == pending.computerId }) else { return }
+        let newApps = computer.apps.filter { !pending.knownAppIds.contains($0.id) }
+        let name = pending.name.trimmingCharacters(in: .whitespaces)
+        guard let app = newApps.first(where: {
+            $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+        }) ?? (newApps.count == 1 ? newApps.first : nil) else { return }
+
+        var settings = self.settings(of: app, on: computer)
+        settings.poster = pending.settings.poster ?? settings.poster
+        settings.symbol = pending.settings.symbol ?? settings.symbol
+        settings.color = pending.settings.color ?? settings.color
+        setSettings(settings, of: app, on: computer)
+
+        pending.foundAppId = app.id
+        if addAppComputerId == computer.id {
+            // The guide shows it, and celebrates once closed
+            pendingApp = pending
+        } else {
+            pendingApp = nil
+            celebrateArrival(MVAppRef(computerId: computer.id, appId: app.id))
+        }
+    }
+
+    private func celebrateArrival(_ ref: MVAppRef) {
+        selectedComputerId = ref.computerId
+        selectedAppId = ref.appId
+        Task {
+            // Once the sheet is out of the way
+            try? await Task.sleep(for: .milliseconds(350))
+            arrivals[ref, default: 0] += 1
+        }
     }
 
     // MARK: App settings
@@ -896,13 +1068,14 @@ final class MVModel: ObservableObject {
 
     /// The stream window went away: quit the apps opened for it.
     func streamWindowClosed() {
+        streamGuide = nil
         let bundleIds = appsToQuitAfterStream ?? []
         appsToQuitAfterStream = nil
         bundleIds.forEach(Self.quitApp(bundleIdentifier:))
         linkMonitor?.refresh()
     }
 
-    /// The host's report on the stream that just ended, shown on Home.
+    /// The host's report on the stream that just ended, shown on Home and kept in the history.
     func show(report: MVStreamReport) {
         guard report.durationSecs >= MVStreamSummary.minimumDuration else { return }
         let computer = computers.first { $0.id == report.computerId }
@@ -911,8 +1084,11 @@ final class MVModel: ObservableObject {
         let route = address.map { address in
             computer.flatMap { addressLabel(address.text, of: $0) } ?? address.kindLabel
         }
-        lastReport = MVStreamSummary(report: report, link: linkAtLaunch ?? link,
-                                     route: route, localRoute: address?.kind == "local")
+        let summary = MVStreamSummary(report: report, link: linkAtLaunch ?? link,
+                                      route: route, localRoute: address?.kind == "local")
+        lastReport = summary
+        MVStreamHistory.append(MVStreamRecord(summary: summary, computerName: computer?.name ?? "",
+                                              routeKind: address?.kind))
     }
 
     /// Asks every instance of an app to quit. A standard quit event also reaches an

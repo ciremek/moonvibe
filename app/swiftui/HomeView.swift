@@ -99,6 +99,14 @@ struct MVRootView: View {
                 MVAppSettingsSheet(model: model, computer: computer, app: app)
             }
         }
+        .sheet(isPresented: Binding(
+            get: { model.addAppComputerId != nil },
+            set: { if !$0 { model.closeAddApp() } }
+        )) {
+            if let computer = model.computers.first(where: { $0.id == model.addAppComputerId }) {
+                MVAddAppSheet(model: model, computer: computer)
+            }
+        }
         .alert("Lancement impossible", isPresented: Binding(
             get: { model.errorMessage != nil },
             set: { if !$0 { model.errorMessage = nil } }
@@ -309,6 +317,9 @@ struct MVComputerHome: View {
     @FocusState private var gridFocused: Bool
     @State private var confirmDelete = false
     @Namespace private var selectionRing
+    @AppStorage(MVTileStyle.key) private var tileStyle = MVTileStyle.covers
+    /// The tile being dragged to another place.
+    @State private var draggedAppId: Int?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let tileMinWidth: CGFloat = 140
@@ -351,17 +362,31 @@ struct MVComputerHome: View {
                                   alignment: .leading, spacing: spacing) {
                             ForEach(Array(apps.enumerated()), id: \.element.id) { index, app in
                                 let ref = MVAppRef(computerId: computer.id, appId: app.id)
+                                let settings = model.settings(of: app, on: computer)
                                 MVAppTile(app: app,
-                                          settings: model.settings(of: app, on: computer),
+                                          settings: settings,
                                           selected: app.id == selected?.id && gridFocused,
                                           highlighted: app.id == selected?.id,
                                           running: app.id == computer.runningAppId,
                                           enabled: computer.online && computer.paired,
+                                          posterStyle: tileStyle.posters,
+                                          poster: model.poster(of: app, on: computer, settings: settings, style: tileStyle),
                                           launching: (model.busy && model.launchingApp == ref) || launchingAfterWake?.id == app.id,
                                           launchRequests: model.launchRequests[ref] ?? 0,
-                                          launchStarts: model.launchStarts[ref] ?? 0,
+                                          bursts: (model.launchStarts[ref] ?? 0) + (model.arrivals[ref] ?? 0),
                                           wakeDelay: mvWaveDelay(index: index, reduceMotion: reduceMotion),
                                           selectionRing: selectionRing)
+                                    // Its place while it's dragged: the other tiles make room as it goes
+                                    .opacity(draggedAppId == app.id ? 0.35 : 1)
+                                    .onDrag {
+                                        model.selectedAppId = app.id
+                                        draggedAppId = app.id
+                                        forgetDragOnRelease()
+                                        return NSItemProvider(object: String(app.id) as NSString)
+                                    }
+                                    .onDrop(of: [.text], delegate: MVTileDropDelegate(
+                                        target: app, computer: computer, model: model,
+                                        dragged: $draggedAppId, reduceMotion: reduceMotion))
                                     // The launched tile is the selected one: its sparks go over the others
                                     .zIndex(app.id == selected?.id ? 1 : 0)
                                     .onTapGesture(count: 2) { model.requestLaunch(app, on: computer) }
@@ -379,8 +404,25 @@ struct MVComputerHome: View {
                                     .accessibilityAction(named: "Réglages \(mvOf(app.name))") {
                                         model.appSettingsTarget = MVAppRef(computerId: computer.id, appId: app.id)
                                     }
+                                    .accessibilityAction(named: "Déplacer vers la gauche") {
+                                        if index > 0 { model.moveApp(app.id, to: apps[index - 1].id, on: computer) }
+                                    }
+                                    .accessibilityAction(named: "Déplacer vers la droite") {
+                                        if index + 1 < apps.count { model.moveApp(app.id, to: apps[index + 1].id, on: computer) }
+                                    }
                                     .accessibilityHint(computer.online ? "Lance l'app" : "Réveille le PC, puis lance l'app")
                             }
+                            if computer.paired, model.search.trimmingCharacters(in: .whitespaces).isEmpty {
+                                MVAddAppTile(posterStyle: tileStyle.posters, enabled: computer.online) {
+                                    model.openAddApp(on: computer)
+                                }
+                            }
+                        }
+                        // Dropped between tiles: the order is already where it was left
+                        .onDrop(of: [.text], isTargeted: nil) { _ in
+                            let accepted = draggedAppId != nil
+                            draggedAppId = nil
+                            return accepted
                         }
                         .animation(reduceMotion ? .easeInOut(duration: 0.15) : .mvGlide, value: selected?.id)
                     }
@@ -415,6 +457,13 @@ struct MVComputerHome: View {
                     Button("Réveiller") { model.wake(computer) }
                         .disabled(!model.canWake(computer) || model.isWaking(computer))
                     Button("Réglages \(mvOf(computer.name))…") { model.computerSettingsId = computer.id }
+                    Button("Ajouter un jeu…") { model.openAddApp(on: computer) }
+                        .disabled(!computer.online || !computer.paired)
+                    if model.hasCustomAppOrder(computer) {
+                        Button("Rétablir l'ordre du PC") {
+                            withAnimation(reduceMotion ? nil : .mvGlide) { model.resetAppOrder(of: computer) }
+                        }
+                    }
                     if let running = computer.runningApp {
                         Button("Quitter \(running.name)…") { model.confirmQuitComputerId = computer.id }
                     }
@@ -444,6 +493,48 @@ struct MVComputerHome: View {
         } message: {
             Text("Il faudra l'appairer à nouveau pour streamer.")
         }
+    }
+}
+
+extension MVComputerHome {
+    /// SwiftUI says nothing when a drag ends away from a drop target: the mouse release does.
+    private func forgetDragOnRelease() {
+        Task {
+            repeat {
+                try? await Task.sleep(for: .milliseconds(150))
+            } while NSEvent.pressedMouseButtons & 1 != 0
+            draggedAppId = nil
+        }
+    }
+}
+
+/// Moves the dragged tile into each tile's place as it passes over it.
+private struct MVTileDropDelegate: DropDelegate {
+    let target: MVApp
+    let computer: MVComputer
+    let model: MVModel
+    @Binding var dragged: Int?
+    let reduceMotion: Bool
+
+    func validateDrop(info: DropInfo) -> Bool {
+        dragged != nil
+    }
+
+    func dropEntered(info: DropInfo) {
+        guard let dragged, dragged != target.id else { return }
+        withAnimation(reduceMotion ? nil : .mvGlide) {
+            model.moveApp(dragged, to: target.id, on: computer)
+        }
+        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        dragged = nil
+        return true
     }
 }
 
@@ -617,32 +708,38 @@ struct MVAppTile: View {
     let highlighted: Bool
     let running: Bool
     let enabled: Bool
+    /// A 3:4 poster rather than an icon tile, and the cover it shows if any.
+    var posterStyle = false
+    var poster: MVPosterImage?
     /// Its stream is starting, or waits for the PC to wake up.
     var launching = false
     /// Launch requests so far: the tile presses in and springs back for each new one.
     var launchRequests = 0
-    /// Launches started so far: each one bursts out of the tile.
-    var launchStarts = 0
+    /// Launches started and arrivals so far: each one bursts out of the tile.
+    var bursts = 0
     /// When the PC answers, tiles light up one after the other.
     var wakeDelay = 0.0
     /// Shared by the grid's tiles; nil for a tile shown alone.
     var selectionRing: Namespace.ID?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var cornerRadius: CGFloat { posterStyle ? MVPoster.cornerRadius : 20 }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(settings.color.map { $0.color.opacity(highlighted ? 0.28 : 0.18) }
-                          ?? (highlighted ? mvAccent.opacity(0.12) : tileFill))
-                    .aspectRatio(4.0 / 3.0, contentMode: .fit)
-                    .overlay { artwork }
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .overlay {
-                        if highlighted {
-                            ring
-                        }
+                Group {
+                    if posterStyle {
+                        posterTile
+                    } else {
+                        iconTile
                     }
+                }
+                .overlay {
+                    if highlighted {
+                        ring
+                    }
+                }
 
                 if !running, settings.preset != nil || !settings.openApps.isEmpty {
                     // The stream does more than the usual: say so without words
@@ -655,8 +752,15 @@ struct MVAppTile: View {
                         }
                     }
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(10)
+                    .foregroundStyle(posterStyle ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                    .padding(posterStyle ? 6 : 0)
+                    .background {
+                        // Covers are busy: the icons get a backdrop of their own
+                        if posterStyle {
+                            Capsule().fill(.regularMaterial)
+                        }
+                    }
+                    .padding(posterStyle ? 8 : 10)
                     .accessibilityHidden(true)
                 }
                 if running {
@@ -666,10 +770,11 @@ struct MVAppTile: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(Capsule().fill(mvRunningFill))
-                        .padding(10)
+                        .padding(posterStyle ? 8 : 10)
                         .transition(reduceMotion ? .opacity : .scale(scale: 0.6, anchor: .topTrailing).combined(with: .opacity))
                 }
             }
+            .offset(y: posterStyle && highlighted && !reduceMotion ? -3 : 0)
             Text(app.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
         }
         .animation(.mvState, value: running)
@@ -686,7 +791,7 @@ struct MVAppTile: View {
         }
         .overlay {
             // Larger than the tile, so the sparks fly over its neighbors
-            MVLaunchBurst(trigger: launchStarts, color: settings.color?.color ?? mvAccent)
+            MVLaunchBurst(trigger: bursts, color: settings.color?.color ?? mvAccent)
                 .frame(width: 440, height: 440)
         }
         // Asleep, the tiles sink back and lose their color
@@ -699,10 +804,27 @@ struct MVAppTile: View {
         .accessibilityAddTraits(highlighted ? .isSelected : [])
     }
 
+    private var iconTile: some View {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(settings.color.map { $0.color.opacity(highlighted ? 0.28 : 0.18) }
+                  ?? (highlighted ? mvAccent.opacity(0.12) : tileFill))
+            .aspectRatio(4.0 / 3.0, contentMode: .fit)
+            .overlay { artwork }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    /// The selected poster casts the light of its cover.
+    private var posterTile: some View {
+        let glow = poster?.glow ?? settings.color?.color ?? mvAccent
+        return MVPoster(app: app, settings: settings, poster: poster, launching: launching)
+            .shadow(color: glow.opacity(highlighted && enabled ? 0.6 : 0), radius: 18, y: 10)
+            .shadow(color: .black.opacity(0.18), radius: 3, y: 2)
+    }
+
     /// The selection outline, which glides from tile to tile.
     @ViewBuilder
     private var ring: some View {
-        let outline = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let outline = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .strokeBorder(mvAccentForeground, lineWidth: 3)
             .opacity(selected ? 1 : 0.55)
         if let selectionRing, !reduceMotion {
@@ -712,8 +834,6 @@ struct MVAppTile: View {
         }
     }
 
-    // Icon + tint, as in the design. Sunshine's box art is portrait poster art that
-    // gets cropped badly in 4:3 tiles, so it stays unused until the tiles get a poster mode.
     private var artwork: some View {
         Image(systemName: settings.symbol ?? app.symbolName)
             .font(.system(size: 30, weight: .regular))

@@ -10,6 +10,7 @@
 
 #include "backend/nvapp.h"
 
+class BoxArtManager;
 class ComputerManager;
 class NvComputer;
 class Session;
@@ -56,6 +57,11 @@ private:
 
     ComputerManager* m_ComputerManager;
     StreamingPreferences* m_Prefs;
+    BoxArtManager* m_BoxArtManager;
+    // "uuid:appId" of the box art downloaded again this session
+    QSet<QString> m_RefreshedBoxArt;
+    // Box art arrives one app at a time: one push for a burst of them
+    QTimer m_BoxArtPushTimer;
     QSet<QString> m_DeletingUuids;
     Session* m_Session;
     bool m_Polling;

@@ -12,7 +12,9 @@ import SwiftUI
 
 /// The Wi-Fi this Mac is on: band, channel, width and signal.
 struct MVWiFi: Equatable {
-    enum Band { case ghz2_4, ghz5, ghz6 }
+    enum Band: String {
+        case ghz2_4 = "2.4GHz", ghz5 = "5GHz", ghz6 = "6GHz"
+    }
 
     let band: Band
     let channel: Int
@@ -169,7 +171,7 @@ struct MVStreamSummary: Equatable {
     /// Through the PC's local network, the shortest way.
     let localRoute: Bool
 
-    enum Verdict { case great, fair, rough }
+    enum Verdict: String { case great, fair, rough }
 
     private var audioCutsPerMinute: Double {
         Double(report.audioCuts) / max(report.durationSecs / 60, 1)

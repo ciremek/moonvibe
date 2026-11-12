@@ -1,4 +1,4 @@
-// Stream overlays: control bar, stats card and start reminder, shown in borderless
+// Stream overlays: control bar, stats card, start reminder and the add-a-game guide, shown in borderless
 // panels attached above the SDL stream window. They never take keyboard focus, and
 // only the control bar receives clicks, so the stream keeps its input.
 //
@@ -106,6 +106,9 @@ final class MVStreamOverlay {
     private let barPanel = MVOverlayPanel(interactive: true)
     private let statsPanel = MVOverlayPanel(interactive: false)
     private let reminderPanel = MVOverlayPanel(interactive: false)
+    private let guidePanel = MVOverlayPanel(interactive: false)
+    /// The stream was opened from the add-a-game guide: its steps stay on screen.
+    private let showsGuide: Bool
     private var timer: Timer?
 
     /// Measured size per panel, with the state it was measured for: SwiftUI layout only
@@ -131,6 +134,13 @@ final class MVStreamOverlay {
         barPanel.host(MVControlBar(model: model))
         statsPanel.host(MVStatsCard(model: model))
         reminderPanel.host(MVReminder())
+        if let guide = MVWindowController.shared?.model.streamGuide,
+           guide.desktopName == info.app, guide.computerName == info.computer {
+            guidePanel.host(MVStreamGuideCard(guide: guide))
+            showsGuide = true
+        } else {
+            showsGuide = false
+        }
 
         // Remind the shortcuts on the first streams
         let shown = UserDefaults.standard.integer(forKey: Self.reminderCountKey)
@@ -150,7 +160,7 @@ final class MVStreamOverlay {
     func end() {
         timer?.invalidate()
         timer = nil
-        for panel in [statsPanel, reminderPanel, barPanel] where panel.parent != nil {
+        for panel in [statsPanel, reminderPanel, guidePanel, barPanel] where panel.parent != nil {
             streamWindow.removeChildWindow(panel)
             panel.orderOut(nil)
         }
@@ -194,6 +204,10 @@ final class MVStreamOverlay {
         if show(reminderPanel, now < reminderHideDate) {
             let reminder = size(of: reminderPanel, for: "")
             place(reminderPanel, size: reminder, x: content.midX - reminder.width / 2, y: content.minY - offset)
+        }
+        if show(guidePanel, showsGuide) {
+            let guide = size(of: guidePanel, for: "")
+            place(guidePanel, size: guide, x: content.maxX - guide.width + offset, y: content.minY - offset)
         }
     }
 
@@ -430,6 +444,43 @@ struct MVReminder: View {
         .fixedSize()
         .overlayGlass(in: Capsule())
         .padding(MVStreamOverlay.shadowMargin)
+    }
+}
+
+/// The add-a-game steps, in the stream's bottom right corner while it shows the PC's desktop.
+struct MVStreamGuideCard: View {
+    let guide: MVStreamGuide
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label {
+                Text("Ajouter \(guide.appName) sur \(guide.computerName)")
+            } icon: {
+                Image(systemName: "plus.app.fill").foregroundStyle(mvAccent)
+            }
+            .font(.system(size: 13, weight: .semibold))
+            step(1, "Ouvre **localhost:47990** dans un navigateur, puis **Applications**, **Ajouter une application** (*Add New*).")
+            step(2, "**Nom de l'application** (*Application Name*) : ⌃⌥⇧V tape « \(guide.appName) ».")
+            step(3, "**Commande** (*Command*) : dans le menu Démarrer, clic droit sur le jeu, **Ouvrir l'emplacement du fichier**, puis pareil sur le raccourci qui s'affiche. Le jeu sélectionné, **Ctrl Maj C** copie son chemin : colle-le.")
+            step(4, "**Enregistre**, puis ⌃⌥⇧Q pour revenir : Moonvibe s'occupe de l'affiche.")
+        }
+        .frame(width: 330, alignment: .leading)
+        .padding(16)
+        .overlayGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(MVStreamOverlay.shadowMargin)
+    }
+
+    private func step(_ number: Int, _ text: LocalizedStringKey) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(verbatim: String(number))
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 18, height: 18)
+                .background(Circle().fill(mvAccent))
+            Text(text)
+                .font(.system(size: 12))
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

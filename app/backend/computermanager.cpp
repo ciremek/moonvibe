@@ -723,6 +723,53 @@ private:
     NvComputer* m_Computer;
 };
 
+class AppListRefreshTask : public QObject, public QRunnable
+{
+    Q_OBJECT
+
+public:
+    AppListRefreshTask(ComputerManager* computerManager, NvComputer* computer)
+        : m_Computer(computer)
+    {
+        connect(this, &AppListRefreshTask::appListChanged,
+                computerManager, &ComputerManager::handleComputerStateChanged);
+    }
+
+signals:
+    void appListChanged(NvComputer* computer);
+
+private:
+    void run()
+    {
+        NvHTTP http(m_Computer);
+        QVector<NvApp> appList;
+        try {
+            appList = http.getAppList();
+        } catch (...) {
+            return;
+        }
+        if (appList.isEmpty()) {
+            return;
+        }
+
+        bool changed;
+        {
+            QWriteLocker lock(&m_Computer->lock);
+            changed = m_Computer->updateAppList(appList);
+        }
+        if (changed) {
+            emit appListChanged(m_Computer);
+        }
+    }
+
+    NvComputer* m_Computer;
+};
+
+void ComputerManager::refreshAppList(NvComputer* computer)
+{
+    QThreadPool::globalInstance()->start(new AppListRefreshTask(this, computer));
+}
+
 void ComputerManager::quitRunningApp(NvComputer* computer)
 {
     QWriteLocker lock(&computer->lock);

@@ -245,7 +245,7 @@ struct MVPairingPin: View {
     }
 }
 
-private struct MVPairingInstruction: View {
+struct MVPairingInstruction: View {
     let number: Int
     let text: LocalizedStringKey
 
@@ -301,7 +301,7 @@ struct MVPairingDone: View {
 }
 
 /// A large green check that draws itself in (macOS 26), or pops in before.
-private struct MVDrawnCheckmark: View {
+struct MVDrawnCheckmark: View {
     let drawn: Bool
 
     var body: some View {

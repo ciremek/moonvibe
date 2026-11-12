@@ -62,7 +62,7 @@ enum MVSettingsSection: String, CaseIterable, Identifiable {
             return [String(localized: "Codec vidéo"), String(localized: "YUV 4:4:4"), String(localized: "Décodeur vidéo"), String(localized: "Moteur de rendu"), String(localized: "Débloquer le débit"),
                     String(localized: "Optimiser les réglages des jeux"), String(localized: "Garder l'écran allumé"), String(localized: "Afficher les stats au démarrage"), String(localized: "Avertissements de connexion"),
                     String(localized: "Avertissements de configuration"), String(localized: "Statut Discord"),
-                    String(localized: "Rechercher les mises à jour")]
+                    String(localized: "Tuiles des jeux"), String(localized: "Rechercher les mises à jour")]
         }
     }
 }
@@ -505,6 +505,7 @@ struct MVAdvancedSettings: View {
     @AppStorage("SUEnableAutomaticChecks") private var checkForUpdates = true
     @AppStorage(MVQuickLaunch.menuBarIconKey) private var menuBarIcon = false
     @AppStorage(MVQuickLaunch.hideDockIconKey) private var hideDockIcon = false
+    @AppStorage(MVTileStyle.key) private var tileStyle = MVTileStyle.covers
     private let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
 
     var body: some View {
@@ -568,6 +569,12 @@ struct MVAdvancedSettings: View {
                 }
             }
             Section("Moonvibe") {
+                Picker("Tuiles des jeux", selection: $tileStyle) {
+                    ForEach(MVTileStyle.allCases) { style in
+                        Text(style.label).tag(style)
+                    }
+                }
+                .help("Une image choisie dans les réglages d'une app passe toujours devant.")
                 MVSettingToggle(title: "Icône dans la barre des menus",
                                 help: "Tes jeux récents en un clic, comme dans le menu de l'icône du Dock.",
                                 isOn: $menuBarIcon)

@@ -214,6 +214,7 @@ class ComputerManager : public QObject
     friend class DeferredHostDeletionTask;
     friend class PendingAddTask;
     friend class PendingPairingTask;
+    friend class AppListRefreshTask;
     friend class DelayedFlushThread;
 
 public:
@@ -234,6 +235,9 @@ public:
     void pairHost(NvComputer* computer, QString pin);
 
     void quitRunningApp(NvComputer* computer);
+
+    // Fetches the PC's app list now rather than at the next periodic refresh
+    void refreshAppList(NvComputer* computer);
 
     QVector<NvComputer*> getComputers();
 

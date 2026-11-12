@@ -1,5 +1,5 @@
-// App settings sheet: the tile's look, the quality the app streams at, and the Mac apps
-// its streams open and quit.
+// App settings sheet: the tile's look and poster, the quality the app streams at, and the
+// Mac apps its streams open and quit.
 
 import AppKit
 import SwiftUI
@@ -14,6 +14,10 @@ struct MVAppSettingsSheet: View {
     @State private var picks: [String: Int] = [:]
     @Namespace private var symbolSelection
     @Namespace private var colorSelection
+    @AppStorage(MVTileStyle.key) private var tileStyle = MVTileStyle.covers
+    /// A file dragged over the tile preview.
+    @State private var dropTargeted = false
+    @State private var posterError = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Tile icons to pick from: games, genres and a few useful apps.
@@ -46,10 +50,16 @@ struct MVAppSettingsSheet: View {
             Form {
                 Section("Apparence") {
                     HStack(alignment: .top, spacing: 20) {
-                        MVAppTile(app: app, settings: settings, selected: false, highlighted: false,
-                                  running: false, enabled: true)
+                        MVAppTile(app: app, settings: settings, selected: false, highlighted: dropTargeted,
+                                  running: false, enabled: true, posterStyle: tileStyle.posters,
+                                  poster: model.poster(of: app, on: computer, settings: settings, style: tileStyle))
                             .frame(width: 120)
                             .accessibilityHidden(true)
+                            .dropDestination(for: URL.self) { urls, _ in
+                                guard tileStyle.posters, let url = urls.first else { return false }
+                                usePoster(at: url)
+                                return true
+                            } isTargeted: { dropTargeted = tileStyle.posters && $0 }
 
                         VStack(alignment: .leading, spacing: 12) {
                             LazyVGrid(columns: Array(repeating: GridItem(.fixed(32), spacing: 4), count: 8),
@@ -65,6 +75,24 @@ struct MVAppSettingsSheet: View {
                         }
                     }
                     .padding(.vertical, 4)
+
+                    if tileStyle.posters {
+                        LabeledContent {
+                            HStack {
+                                if settings.poster != nil {
+                                    Button("Retirer") { withAnimation(.mvState) { settings.poster = nil } }
+                                }
+                                Button("Choisir une image…") { choosePoster() }
+                            }
+                        } label: {
+                            Text("Affiche")
+                            if posterError {
+                                Text("Cette image ne s'ouvre pas.").foregroundStyle(mvDanger)
+                            } else {
+                                Text("Pour cette app seulement. Tu peux aussi glisser une image sur la tuile.")
+                            }
+                        }
+                    }
                 }
 
                 Section {
@@ -209,6 +237,29 @@ struct MVAppSettingsSheet: View {
             .buttonStyle(.borderless)
             .help("Retirer \(name)")
             .accessibilityLabel("Retirer \(name)")
+        }
+    }
+
+    private func choosePoster() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.canChooseDirectories = false
+        panel.prompt = String(localized: "Choisir")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        usePoster(at: url)
+    }
+
+    /// Copies the image into Moonvibe's posters. The old one stays on disk until the next
+    /// launch, in case this sheet is cancelled.
+    private func usePoster(at url: URL) {
+        do {
+            let name = try MVPosters.importImage(at: url, for: computer)
+            withAnimation(.mvState) {
+                settings.poster = name
+                posterError = false
+            }
+        } catch {
+            withAnimation(.mvState) { posterError = true }
         }
     }
 

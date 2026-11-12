@@ -1,7 +1,9 @@
-// The SwiftUI shell is French-only for now, so its messages are not run through tr()
+// The shell's messages are French templates that the SwiftUI side translates
+// (mvHostMessage), so they are not run through tr()
 #include "swiftuishell.h"
 #include "moonvibeui.h"
 
+#include "backend/boxartmanager.h"
 #include "backend/computermanager.h"
 #include "backend/nvhttp.h"
 #include "settings/streamingpreferences.h"
@@ -9,6 +11,8 @@
 #include "streaming/session.h"
 
 #include <QCoreApplication>
+#include <QDateTime>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -45,11 +49,19 @@ SwiftUIShell::SwiftUIShell(ComputerManager* computerManager, QObject* parent)
     : QObject(parent),
       m_ComputerManager(computerManager),
       m_Prefs(StreamingPreferences::get()),
+      m_BoxArtManager(new BoxArtManager(this)),
       m_Session(nullptr),
       m_Polling(false)
 {
     Q_ASSERT(s_Instance == nullptr);
     s_Instance = this;
+
+    m_BoxArtPushTimer.setSingleShot(true);
+    m_BoxArtPushTimer.setInterval(300);
+    connect(&m_BoxArtPushTimer, &QTimer::timeout, this, &SwiftUIShell::pushComputers);
+    connect(m_BoxArtManager, &BoxArtManager::boxArtLoadComplete, this, [this] {
+        m_BoxArtPushTimer.start();
+    });
 
     connect(m_ComputerManager, &ComputerManager::computerStateChanged,
             this, &SwiftUIShell::pushComputers, Qt::QueuedConnection);
@@ -114,6 +126,7 @@ void SwiftUIShell::pushComputers()
     for (NvComputer* computer : m_ComputerManager->getComputers()) {
         QVector<NvApp> appList;
         QJsonObject entry;
+        bool reachable;
         {
             QReadLocker lock(&computer->lock);
             if (m_DeletingUuids.contains(computer->uuid)) {
@@ -122,6 +135,7 @@ void SwiftUIShell::pushComputers()
 
             appList = computer->appList;
             bool online = computer->state == NvComputer::CS_ONLINE;
+            reachable = online && computer->pairState == NvComputer::PS_PAIRED;
             entry = QJsonObject {
                 { "uuid", computer->uuid },
                 { "name", computer->name },
@@ -156,15 +170,31 @@ void SwiftUIShell::pushComputers()
             entry.insert("addresses", addresses);
         }
 
-        // No box art: the tiles show an icon, so there's nothing to download
+        // Box art for the poster tiles: the cached file right away, and from a paired PC
+        // that's online, a download when there's none or once a session, so a cover just
+        // set in Sunshine shows up. Each download ends with another push.
         QJsonArray apps;
-        for (const NvApp& app : appList) {
-            if (!app.hidden) {
-                apps.append(QJsonObject {
-                    { "id", app.id },
-                    { "name", app.name },
-                });
+        for (NvApp& app : appList) {
+            if (app.hidden) {
+                continue;
             }
+            QJsonObject appEntry {
+                { "id", app.id },
+                { "name", app.name },
+            };
+            QUrl boxArt = m_BoxArtManager->cachedBoxArt(computer, app.id);
+            QString key = computer->uuid + ':' + QString::number(app.id);
+            if (reachable && !m_RefreshedBoxArt.contains(key)) {
+                m_RefreshedBoxArt.insert(key);
+                m_BoxArtManager->refreshBoxArt(computer, app);
+            }
+            if (boxArt.isLocalFile()) {
+                QFileInfo file(boxArt.toLocalFile());
+                appEntry.insert("boxArt", file.filePath());
+                // Same path once refreshed: the date tells the shell to load it again
+                appEntry.insert("boxArtDate", static_cast<double>(file.lastModified().toMSecsSinceEpoch()));
+            }
+            apps.append(appEntry);
         }
         entry.insert("apps", apps);
         computers.append(entry);
@@ -364,6 +394,14 @@ void SwiftUIShell::dispatch(const QJsonObject& action)
         NvComputer* computer = findComputer(action["uuid"].toString());
         if (computer != nullptr) {
             m_ComputerManager->quitRunningApp(computer);
+        }
+    }
+    else if (type == "refreshApps") {
+        // While an app is being added on the PC, so it shows up within seconds
+        NvComputer* computer = findComputer(action["uuid"].toString());
+        if (computer != nullptr && computer->state == NvComputer::CS_ONLINE &&
+                computer->pairState == NvComputer::PS_PAIRED) {
+            m_ComputerManager->refreshAppList(computer);
         }
     }
     else if (type == "pair") {

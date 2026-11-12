@@ -87,6 +87,20 @@ QUrl BoxArtManager::loadBoxArt(NvComputer* computer, NvApp& app)
     return QUrl("qrc:/res/no_app_image.png");
 }
 
+QUrl BoxArtManager::cachedBoxArt(NvComputer* computer, int appId)
+{
+    QFile cacheFile(getFilePathForBoxArt(computer, appId));
+    if (cacheFile.exists() && cacheFile.size() > 0) {
+        return QUrl::fromLocalFile(cacheFile.fileName());
+    }
+    return QUrl();
+}
+
+void BoxArtManager::refreshBoxArt(NvComputer* computer, NvApp& app)
+{
+    m_ThreadPool.start(new NetworkBoxArtLoadTask(this, computer, app));
+}
+
 void BoxArtManager::deleteBoxArt(NvComputer* computer)
 {
     QDir dir(Path::getBoxArtCacheDir());

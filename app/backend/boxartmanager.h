@@ -18,6 +18,14 @@ public:
     QUrl
     loadBoxArt(NvComputer* computer, NvApp& app);
 
+    // The cached box art, without downloading anything: empty when there's none
+    QUrl
+    cachedBoxArt(NvComputer* computer, int appId);
+
+    // Downloads the box art again, even if it's cached: boxArtLoadComplete() follows
+    void
+    refreshBoxArt(NvComputer* computer, NvApp& app);
+
     static
     void
     deleteBoxArt(NvComputer* computer);
